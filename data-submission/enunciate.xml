@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<enunciate label="ghap.io" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://enunciate.codehaus.org/schemas/enunciate-1.29.xsd">
+   <modules>
+      <docs splashPackage="org.codehaus.enunciate.api" title="GHAP Activity Management Service" copyright="ghap.io"/>
+   </modules>
+
+   <services>
+     <rest defaultRestSubcontext="/rest/v1"/>
+   </services>
+</enunciate>
+

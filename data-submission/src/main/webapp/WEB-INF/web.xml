@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<web-app version="2.5" xmlns="http://java.sun.com/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://java.sun.com/xml/ns/javaee">
+
+  <display-name>Data Submission Service</display-name>
+
+  <context-param>
+        <param-name>governator.bootstrap.class</param-name>
+        <param-value>io.ghap.data.contribution.DataSubmissionBootstrap</param-value>
+  </context-param>
+
+   <listener>
+    <listener-class>com.netflix.governator.guice.servlet.GovernatorServletContextListener</listener-class>
+   </listener>
+
+   <filter>
+    <filter-name>guiceFilter</filter-name>
+    <filter-class>com.google.inject.servlet.GuiceFilter</filter-class>
+   </filter>
+
+   <filter-mapping>
+    <filter-name>guiceFilter</filter-name>
+    <url-pattern>/*</url-pattern>
+   </filter-mapping>
+</web-app>
+
