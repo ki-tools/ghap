@@ -1,0 +1,375 @@
+{
+  "Description" : "Cloudformation Stack for Samba Servers",
+  "Mappings": {
+    "AvailabilityZone": {
+      "A": { "ZONEID": "us-east-1a" },
+      "B": { "ZONEID": "us-east-1c" }
+    },
+    "SambaConfig": {
+      "DOMAIN": { "VALUE": "PROD" },
+      "PASSWORD": { "VALUE": "" },
+      "REALM": { "VALUE": "PROD.GHAP.IO" }
+    }
+  },
+  "Parameters": {
+    "KeyName": {
+      "ConstraintDescription": "Must be the name of an existing EC2 KeyPair.",
+      "Description": "EC2 Key Pair to allow SSH access to the instance",
+      "Type": "AWS::EC2::KeyPair::KeyName"
+    },
+    "ServerAccess": {
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "must be a valid CIDR range of the form x.x.x.x/x.",
+      "Default": "0.0.0.0/0",
+      "Description": "CIDR IP range allowed to login to the NAT instance",
+      "MaxLength": "18",
+      "MinLength": "9",
+      "Type": "String"
+    },
+    "GhapVPC": {
+      "ConstraintDescription": "The VPC Id",
+      "Description": "The VPC Id",
+      "Type": "String"
+    },
+    "GhapPrivateSubnetA": {
+      "Description": "Private Subnet Id for Availability Zone",
+      "Type": "String"
+    },
+    "GhapPrivateSubnetB": {
+      "Description": "Private Subnet Id for Availability Zone",
+      "Type": "String"
+    },
+    "GhapPublicSubnetA": {
+      "Description": "Public Subnet Id for Availability Zone",
+      "Type": "String"
+    },
+    "GhapPublicSubnetB": {
+      "Description": "Public Subnet Id for Availability Zone",
+      "Type": "String"
+    },
+    "GhapWindowsSambaSecurityGroup" : {
+      "Description": "Security Id for Samba Security Group",
+      "Type": "String"
+    },
+    "GhapNatSecurityGroup" : {
+      "Description": "Security Id for Nat Security Group",
+      "Type": "String"
+    },
+    "SambaKeyName": {
+      "ConstraintDescription": "Must be the name of an existing EC2 KeyPair.",
+      "Description": "EC2 Key Pair to allow SSH access to the instance",
+      "Type": "AWS::EC2::KeyPair::KeyName"
+    },
+    "Domain": {
+      "Description": "The domain or subdomain to be used.",
+      "Type": "String",
+      "ConstraintDescription" : "Must specify ghap.io.,dev.ghap.io.,qa.ghap.io.",
+      "AllowedValues" : ["ghap.io.", "samba.ghap.io.", "dev.ghap.io.", "qa.ghap.io."]
+    },
+    "DeploymentTarget" : {
+      "AllowedValues" : ["prod", "qa","devtest", "samba"],
+      "Description" : "Deployment Target, this is either prod or dev",
+      "Type" : "String",
+      "Default" : "prod"
+    }
+  },
+  "Conditions" : {
+    "CreateDevTestResources" : {"Fn::Equals" : [{"Ref" : "DeploymentTarget"}, "dev"]},
+    "CreateProdResources" : {"Fn::Equals" : [{"Ref" : "DeploymentTarget"}, "prod"]}
+  },
+  "Resources" : {
+    "SambaUserVolume" : {
+      "Properties" : {
+        "AvailabilityZone" : "us-east-1a",
+        "Encrypted" : "true",
+         "SnapshotId" : "snap-541f6c22",
+        "Size" : "5000",
+        "Tags" : [
+          { "Key" : "UserVolume", "Value" : "True" },
+          { "Key" : "Backup", "Value" : "True" },
+          { "Key" : "DeploymentTarget", "Value" : { "Ref" : "DeploymentTarget" } }
+        ],
+        "VolumeType" : "gp2"
+      },
+      "Type" : "AWS::EC2::Volume"
+    },
+    "SambaUserVolumeAttachment" : {
+      "Properties" : {
+        "Device" : "/dev/xvdn",
+        "InstanceId" : {"Ref" : "SambaADInstance" },
+        "VolumeId" : {"Ref" : "SambaUserVolume" }
+      },
+      "Type" : "AWS::EC2::VolumeAttachment"
+    },
+    "SambaADInstance": {
+      "CreationPolicy": {
+        "ResourceSignal": {
+          "Timeout": "PT10M"
+        }
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Init": {
+          "configSets": {
+            "InstallAndRun": [
+              "sambainit",
+              "sambapasswordsettings",
+              "sambarestart"
+            ]
+          },
+          "sambainit": {
+            "files": {
+              "/etc/hosts": {
+                "content": "127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4\n::1         localhost localhost.localdomain localhost6 localhost6.localdomain6\n"
+              },
+              "/etc/sysconfig/network": {
+                "content": "NETWORKING=yes\nNETWORKING_IPV6=no\nHOSTNAME=samba-pdc.ghap.io\n"
+              },
+              "/etc/yum.repos.d/sernet-samba-4.2.repo": {
+                "content" : { "Fn::Join" : ["\n",
+                  [
+                    "[sernet-samba-4.2]\n",
+                    "name=SerNet Samba 4.2 Packages (centos-6)\n",
+                    "type=rpm-md\n",
+                    "baseurl=https://scnagy:WHyBIkFvXH9iO78sBMx88Wjx7v8zVdQp@download.sernet.de/packages/samba/4.2/centos/6/\n",
+                    "gpgcheck=1\n",
+                    "gpgkey=https://scnagy:WHyBIkFvXH9iO78sBMx88Wjx7v8zVdQp@download.sernet.de/packages/samba/4.2/centos/6/repodata/repomd.xml.key\n",
+                    "enabled=1\n"
+                  ]
+                ]}
+              }
+            },
+            "commands": {
+              "restart": {
+                "command": "yum -y update sernet-samba\n",
+                "ignoreErrors": false
+              }
+            }
+          },
+          "sambapasswordsettings" : {
+            "commands" : {
+              "samba-password-settings" : {
+                "command" : "samba-tool domain passwordsettings set --complexity=on --store-plaintext=off --history-length=24 --min-pwd-length=8 --min-pwd-age=0 --max-pwd-age=42 --account-lockout-duration=30 --account-lockout-threshold=6 --reset-account-lockout-after=30\n",
+                "ignoreErrors" : "false"
+              }
+            }
+          },
+          "sambarestart": {
+            "commands": {
+              "restart": {
+                "command": "/sbin/service sernet-samba-ad restart\n",
+                "ignoreErrors": false
+              }
+            }
+          }
+        }
+      },
+      "Properties": {
+        "AvailabilityZone": {
+          "Fn::FindInMap": [ "AvailabilityZone", "A", "ZONEID" ]
+        },
+        "ImageId": "ami-49b85c22",
+        "InstanceType": "c3.large",
+        "KeyName": { "Ref": "SambaKeyName" },
+        "NetworkInterfaces": [
+          {
+            "AssociatePublicIpAddress" : false,
+            "DeleteOnTermination": true,
+            "DeviceIndex": "0",
+            "GroupSet": [ { "Ref": "GhapWindowsSambaSecurityGroup" }, { "Ref" : "GhapNatSecurityGroup"} ],
+            "PrivateIpAddresses": [
+              {
+                "Primary": true,
+                "PrivateIpAddress": "10.10.12.100"
+              }
+            ],
+            "SubnetId": { "Ref": "GhapPrivateSubnetA" }
+          }
+        ],
+        "SourceDestCheck": false,
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash\n",
+                "hostname samba-pdc\n",
+                "cfn-init -s ",{ "Ref": "AWS::StackName" },
+                "         -r SambaADInstance ",
+                "         -c InstallAndRun \n",
+                "# Signal the status from cfn-init\n",
+                "cfn-signal -e $? ",
+                "           --stack=",{"Ref": "AWS::StackName"},
+                "           --resource=SambaADInstance \n"
+              ]
+            ]
+          }
+        }
+      },
+      "Type": "AWS::EC2::Instance"
+    },
+    "SambaSecondaryADInstance": {
+      "DependsOn": [ "SambaADInstance" ],
+      "Metadata": {
+        "AWS::CloudFormation::Init": {
+          "configSets": {
+            "InstallAndRun": [
+              "sambainit",
+              "initializesambasdc",
+              "updatesambaconfig",
+              "sambapasswordsettings",
+              "sambarestart"
+            ]
+          },
+          "initializesambasdc": {
+            "commands": {
+              "configure": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "samba-tool domain join ", { "Fn::FindInMap": [ "SambaConfig", "REALM", "VALUE" ] },
+                      " rodc",
+                      " --username=Administrator --password=", { "Fn::FindInMap": [ "SambaConfig", "PASSWORD", "VALUE" ] }
+                    ]
+                  ]
+                },
+                "ignoreErrors": false
+              }
+            }
+          },
+          "sambainit": {
+            "commands": {
+              "updatesernetsamba": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "cat /etc/default/sernet-samba | sed s/SAMBA_START_MODE=\\\"none\\\"/SAMBA_START_MODE=\\\"ad\\\"/g > /tmp/sernet-samba",
+                      " && mv -f /tmp/sernet-samba /etc/default/sernet-samba\n"
+                    ]
+                  ]
+                },
+                "ignoreErrors": false
+              }
+            },
+            "files": {
+              "/etc/hosts": {
+                "content": "127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4\n::1         localhost localhost.localdomain localhost6 localhost6.localdomain6\n"
+              },
+              "/etc/sysconfig/network": {
+                "content": "NETWORKING=yes\nNETWORKING_IPV6=no\nHOSTNAME=samba-sdc.ghap.io\n"
+              },
+              "/etc/yum.repos.d/sernet-samba-4.2.repo": {
+                "content": {
+                  "Fn::Join": [
+                    "\n",
+                    [
+                      "[sernet-samba-4.2]\n",
+                      "name=SerNet Samba 4.2 Packages (centos-6)\n",
+                      "type=rpm-md\n",
+                      "baseurl=https://scnagy:WHyBIkFvXH9iO78sBMx88Wjx7v8zVdQp@download.sernet.de/packages/samba/4.2/centos/6/\n",
+                      "gpgcheck=1\n",
+                      "gpgkey=https://scnagy:WHyBIkFvXH9iO78sBMx88Wjx7v8zVdQp@download.sernet.de/packages/samba/4.2/centos/6/repodata/repomd.xml.key\n",
+                      "enabled=1\n"
+                    ]
+                  ]
+                }
+              }
+            },
+            "commands": {
+              "restart": {
+                "command": "yum -y update sernet-samba\n",
+                "ignoreErrors": false
+              }
+            },
+            "services": {
+              "sysvinit": {
+                "ip6tables": {
+                  "enabled": "false",
+                  "ensureRunning": "false"
+                },
+                "iptables": {
+                  "enabled": "false",
+                  "ensureRunning": "false"
+                },
+                "postfix": {
+                  "enabled": "false",
+                  "ensureRunning": "false"
+                }
+              }
+            }
+          },
+          "sambapasswordsettings" : {
+            "commands" : {
+              "samba-password-settings" : {
+                "command" : "samba-tool domain passwordsettings set --complexity=on --store-plaintext=off --history-length=24 --min-pwd-length=8 --min-pwd-age=1 --max-pwd-age=42 --account-lockout-duration=30 --account-lockout-threshold=6 --reset-account-lockout-after=30\n",
+                "ignoreErrors" : "false"
+              }
+            }
+          },
+          "sambarestart": {
+            "commands": {
+              "restart": {
+                "command": "/sbin/service sernet-samba-ad restart\n",
+                "ignoreErrors": false
+              }
+            }
+          },
+          "updatesambaconfig": {
+            "commands": {
+              "updatekrb": {
+                "command": "cat /var/lib/samba/private/krb5.conf | sed s/false/true/g > /etc/krb5.conf\n",
+                "ignoreErrors": false
+              },
+              "updatesmb": {
+                "command": "cat /etc/samba/smb.conf | sed s/\"dns forwarder = 10.10.13.100\"/\"dns forwarder = 10.10.0.2\"/g > /tmp/smb.conf && mv -f /tmp/smb.conf /etc/samba/smb.conf\n",
+                "ignoreErrors": false
+              }
+            }
+          }
+        },
+        "CreationPolicy": {
+          "ResourceSignal": { "Timeout": "PT10M" }
+        }
+      },
+      "Properties": {
+        "AvailabilityZone": {
+          "Fn::FindInMap": [ "AvailabilityZone", "B", "ZONEID" ]
+        },
+        "ImageId": "ami-4202372a",
+        "InstanceType": "c3.large",
+        "KeyName": { "Ref": "SambaKeyName" },
+        "NetworkInterfaces": [
+          {
+            "AssociatePublicIpAddress" : false,
+            "DeleteOnTermination": true,
+            "DeviceIndex": "0",
+            "GroupSet": [ { "Ref": "GhapWindowsSambaSecurityGroup" }, { "Ref" : "GhapNatSecurityGroup"} ],
+            "PrivateIpAddresses": [ { "Primary": true, "PrivateIpAddress": "10.10.13.100" } ],
+            "SubnetId": { "Ref": "GhapPrivateSubnetB" }
+          }
+        ],
+        "SourceDestCheck": false,
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash\n",
+                "hostname samba-sdc\n",
+                "cfn-init -s ",{"Ref": "AWS::StackName"},
+                "         -r SambaSecondaryADInstance ",
+                "         -c InstallAndRun \n",
+                "# Signal the status from cfn-init\n",
+                "cfn-signal -e $? ",
+                "           --stack=",{"Ref": "AWS::StackName"},
+                "           --resource=SambaSecondaryADInstance \n"
+              ]
+            ]
+          }
+        }
+      },
+      "Type": "AWS::EC2::Instance"
+    }
+  }
+}

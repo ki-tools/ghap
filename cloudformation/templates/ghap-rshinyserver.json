@@ -1,0 +1,475 @@
+{
+  "Description" : "Cloudformation Stack for RShiny Server",
+  "Mappings": {
+    "AvailabilityZone": {
+      "A": { "ZONEID": "us-east-1a" },
+      "B": { "ZONEID": "us-east-1c" }
+    },
+    "SambaConfig": {
+      "DOMAIN": { "VALUE": "PROD" },
+      "PASSWORD": { "VALUE": "" },
+      "REALM": { "VALUE": "PROD.GHAP.IO" }
+    }
+  },
+  "Parameters": {
+    "KeyName": {
+      "ConstraintDescription": "Must be the name of an existing EC2 KeyPair.",
+      "Description": "EC2 Key Pair to allow SSH access to the instance",
+      "Type": "AWS::EC2::KeyPair::KeyName"
+    },
+    "ServerAccess": {
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "must be a valid CIDR range of the form x.x.x.x/x.",
+      "Default": "0.0.0.0/0",
+      "Description": "CIDR IP range allowed to login to the NAT instance",
+      "MaxLength": "18",
+      "MinLength": "9",
+      "Type": "String"
+    },
+    "DeploymentTarget": {
+      "AllowedValues" : ["prod", "qa","devtest", "samba"],
+      "ConstraintDescription" : "Must specify prod or test." ,
+      "Description": "DeploymentTarget values these are either prod or test",
+      "Type": "String"
+    },
+    "GhapVPC": {
+      "ConstraintDescription": "The VPC Id",
+      "Description": "The VPC Id",
+      "Type": "String"
+    },
+    "GhapPrivateSubnetA": {
+      "Description": "Private Subnet Id for Availability Zone",
+      "Type": "String"
+    },
+    "GhapPrivateSubnetB": {
+      "Description": "Private Subnet Id for Availability Zone",
+      "Type": "String"
+    },
+    "GhapPublicSubnetA": {
+      "Description": "Public Subnet Id for Availability Zone",
+      "Type": "String"
+    },
+    "GhapPublicSubnetB": {
+      "Description": "Public Subnet Id for Availability Zone",
+      "Type": "String"
+    },
+    "GhapRShinySecurityGroup" : {
+      "Description": "Security Id for Samba Security Group",
+      "Type": "String"
+    },
+    "GhapNatSecurityGroup" : {
+      "Description": "Security Id for Nat Security Group",
+      "Type": "String"
+    },
+    "Domain": {
+      "Description": "The domain or subdomain to be used.",
+      "Type": "String",
+      "ConstraintDescription" : "Must specify ghap.io.,dev.ghap.io.,qa.ghap.io.",
+      "AllowedValues" : ["ghap.io.", "samba.ghap.io.", "dev.ghap.io.", "qa.ghap.io."]
+    },
+    "DeploymentTarget" : {
+      "Description" : "Deployment Target, this is either prod or dev",
+      "Type" : "String",
+      "Default" : "prod"
+    },
+    "ShinyKey" : {
+      "Description" : "The activation key to use for Shiny Server Pro",
+      "Type" : "String",
+      "Default" : "P3TG-BR2R-JZYA-5Z5J-EWRH-8BZ6-SWTA"
+    },
+    "S3VisualizationApplication" : {
+      "Description" : "The S3 Location that the Shiny Server will pull applications from",
+      "Type" : "String"
+    },
+    "VisualizationPublisherAccessKey" : {
+      "Description" : "The Publishers Access Key for Synchronization",
+      "Type" : "String"
+    },
+    "VisualizationPublisherSecretKey" : {
+      "Description" : "The Publishers Secret Key for Synchronization",
+      "Type" : "String"
+    }
+  },
+  "Conditions" : {
+    "CreateDevTestResources" : {"Fn::Equals" : [{"Ref" : "DeploymentTarget"}, "dev"]},
+    "CreateProdResources" : {"Fn::Equals" : [{"Ref" : "DeploymentTarget"}, "prod"]}
+  },
+  "Resources" : {
+    "ShinyServerInstance" : {
+      "Properties" : {
+        "AvailabilityZone": {
+          "Fn::FindInMap": [ "AvailabilityZone", "A", "ZONEID" ]
+        },
+        "ImageId": "ami-00381a68",
+        "InstanceType": "c4.xlarge",
+        "KeyName": { "Ref": "KeyName" },
+        "NetworkInterfaces": [
+          {
+            "AssociatePublicIpAddress" : false,
+            "DeleteOnTermination": true,
+            "DeviceIndex": "0",
+            "GroupSet": [ { "Ref": "GhapRShinySecurityGroup" }, { "Ref" : "GhapNatSecurityGroup"} ],
+            "SubnetId": { "Ref": "GhapPrivateSubnetA" }
+          }
+        ],
+        "SourceDestCheck": false,
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash\n",
+                "hostname visualizations\n",
+                "easy_install pip\n",
+                "pip install awscli\n",
+                "cfn-init -s ",{ "Ref": "AWS::StackName" },
+                "         -r ShinyServerInstance ",
+                "         -c InstallAndRun \n",
+                "# Signal the status from cfn-init\n",
+                "cfn-signal -e $? ",
+                "           --stack=",{"Ref": "AWS::StackName"},
+                "           --resource=ShinyServerInstance \n"
+              ]
+            ]
+          }
+        }
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Init": {
+          "configSets": {
+            "InstallAndRun": [
+              "init", "setup-r", "shiny-server", "auto-sync-script", "update-shiny-server-config"
+            ]
+          },
+          "init": {
+            "files": {
+              "/etc/hosts": {
+                "content": "127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4\n::1         localhost localhost.localdomain localhost6 localhost6.localdomain6\n"
+              },
+              "/etc/sysconfig/network": {
+                "content": "NETWORKING=yes\nNETWORKING_IPV6=no\nHOSTNAME=shiny-server-pro.ghap.io\n"
+              },
+              "/root/.Rprofile" : {
+                "content" : "options(download.file.method = 'curl')\n"
+              }
+            },
+            "packages": {
+              "yum": {
+                "curl" : [],
+                "mod_ssl" : [],
+                "R": [],
+                "libpng-devel": [],
+                "libcurl-devel": [],
+                "openssl-devel": []
+              }
+            },
+            "commands" : {
+              "get-shiny-server" : {
+                "command" : {
+                  "Fn::Join" :
+                  [
+                    " ",
+                    [
+                      "curl",
+                      "https://s3.amazonaws.com/rstudio-shiny-server-pro-build/centos6.3/x86_64/shiny-server-commercial-1.4.0.641-rh6-x86_64.rpm",
+                      "-o",
+                      "/tmp/shiny-server-commercial-1.4.0.641-rh6-x86_64.rpm"
+                    ]
+                  ]
+                },
+                "ignoreErrors" : "false"
+              }
+            },
+            "services": {
+              "sysvinit": {
+                "httpd": {
+                  "enabled": "false",
+                  "ensureRunning": "false"
+                },
+                "ip6tables": {
+                  "enabled": "false",
+                  "ensureRunning": "false"
+                },
+                "iptables": {
+                  "enabled": "false",
+                  "ensureRunning": "false"
+                },
+                "postfix": {
+                  "enabled": "false",
+                  "ensureRunning": "false"
+                }
+              }
+            }
+          },
+          "setup-r" : {
+            "commands" : {
+              "cran" : {
+                "command" : "R -e \"install.packages('shiny', repos='http://cran.rstudio.com/')\"",
+                "ignoreErrors" : "false"
+              },
+              "rmarkdown" : {
+                "command" : "R -e \"install.packages('rmarkdown', repos='http://cran.rstudio.com/')\"",
+                "ignoreErrors" : "false"
+              },
+              "packrat" : {
+                "command" : "R -e \"install.packages('packrat', repos='http://cran.rstudio.com/')\"",
+                "ignoreErrors" : "false"
+              }
+            }
+          },
+          "shiny-server" : {
+            "commands" : {
+              "shiny-server" : {
+                "command" : "yum install --nogpgcheck --assumeyes /tmp/shiny-server-commercial-1.4.0.641-rh6-x86_64.rpm",
+                "ignoreErrors" : "false"
+              }
+            }
+          },
+          "auto-sync-script" : {
+            "files" : {
+              "/root/.shiny-sync" : {
+                "content" : {
+                  "Fn::Join" : ["\n", [
+                    {"Fn::Join": ["", ["export AWS_ACCESS_KEY_ID=",{"Ref":"VisualizationPublisherAccessKey"}]]},
+                    {"Fn::Join": ["", ["export AWS_SECRET_ACCESS_KEY=",{"Ref":"VisualizationPublisherSecretKey"}]]},
+                    {"Fn::Join": ["", ["export AWS_DEFAULT_REGION=us-east-1"]]},
+                    {"Fn::Join": ["", ["BUCKET_NAME=",{"Ref":"S3VisualizationApplication"}]]},
+                    "SYNC_LOCATION=/home/shiny/shiny-apps-staging",
+                    "APPS_LOCATION=/home/shiny/apps",
+                    "UPDATES=/tmp/updates.txt",
+                    "R_SCRIPT=/tmp/r_update.sh"
+                  ]]
+                },
+                "mode" : "000600"
+              },
+              "/root/shiny-sync.sh" : {
+                "content" : {
+                  "Fn::Join" : ["\n", [
+                    "#!/bin/bash",
+                    "",
+                    ". $HOME/.shiny-sync",
+                    "",
+                    "if [ ! -d \"$SYNC_LOCATION\" ]; then",
+                    "  su -l shiny -c \"mkdir -p $SYNC_LOCATION\"",
+                    "fi",
+                    "",
+                    "if [ ! -d \"$APPS_LOCATION\" ]; then",
+                    "  su -l shiny -c \"mkdir -p $APPS_LOCATION\"",
+                    "fi",
+                    "",
+                    "aws s3 sync --sse s3://$BUCKET_NAME $SYNC_LOCATION > /tmp/sync_info.txt",
+                    "perl -ne 'print join(\"\\\n\", split(/ /,$_));print(\"\\\n\")' /tmp/sync_info.txt | grep $SYNC_LOCATION > $UPDATES",
+                    "chown -R shiny.shiny $SYNC_LOCATION",
+                    "",
+                    "if [ -f \"$R_SCRIPT\" ]; then",
+                    "  if [ ! -z \"$R_SCRIPT\" ]; then",
+                    "    rm $R_SCRIPT",
+                    "  fi",
+                    "fi",
+                    "",
+                    "echo \"#!/bin/bash\" >> $R_SCRIPT",
+                    "",
+                    "for FILE in `cat $UPDATES`; do",
+                    "ABS_PATH=`readlink -f $FILE`",
+                    {"Fn::Join" : ["", [
+                      "echo ",
+                      "\"",
+                      "R -q -e \\\"options(install.packages.compile.from.source = TRUE); packrat::unbundle('$ABS_PATH', '$APPS_LOCATION')\\\"",
+                      "\"",
+                      " >> ",
+                      "$R_SCRIPT\n"]]
+                    },
+                    "done",
+                    "",
+                    "chown shiny.shiny $R_SCRIPT",
+                    "chmod u+x $R_SCRIPT",
+                    "su shiny -c $R_SCRIPT > /tmp/error.txt 2>&1",
+                    "",
+                    "grep Path /tmp/error.txt | grep 'already exists' | awk '{print $2}' | uniq | sed s/\\'//g > /tmp/remove.txt",
+                    "if [ -s \"/temp/remove.txt\" ]; then",
+                    "  for file in $(cat /tmp/remove.txt); do",
+                    "    rm -rf $file",
+                    "  done",
+                    "  su shiny -c $R_SCRIPT",
+                    "fi",
+                    "",
+                    "python $HOME/build-registry.py -a $APPS_LOCATION",
+                    "chown -R shiny.shiny $APPS_LOCATION"
+                  ]]
+                },
+                "mode" : "000700"
+              },
+              "/root/build-registry.py" : {
+                "content" : {
+                  "Fn::Join" : ["\n", [
+                    "#!/usr/bin/python",
+                    "",
+                    "import os",
+                    "import json",
+                    "import sys,getopt",
+                    "",
+                    "class Application(object):",
+                    "  def __init__(self, path, application):",
+                    "    self.path = path",
+                    "    self.application = application",
+                    "",
+                    "def main(argv):",
+                    "  application_root = ''",
+                    "  try:",
+                    "    opts, args = getopt.getopt(argv,\"ha:\",[\"approot=\"])",
+                    "  except getopt.GetoptError:",
+                    "    print 'build-registry.py -a <application_root>'",
+                    "    sys.exit(2)",
+                    "",
+                    "  for opt, arg in opts:",
+                    "    if opt == '-h':",
+                    "      print 'build-registry.py -a <application_root>'",
+                    "      sys.exit()",
+                    "    elif opt in (\"-a\", \"--approot\"):",
+                    "      application_root = arg",
+                    "",
+                    "  applications = []",
+                    "  for root, dirs, files in os.walk(application_root):",
+                    "    for file in files:",
+                    "      if file == (\"meta-data.json\"):",
+                    "        application_path = os.path.join(root, file)",
+                    "        application_relative_path = application_path.replace(application_root,\".\")",
+                    "        file = open(application_path, 'r')",
+                    "        app = Application(application_relative_path, json.load(file))",
+                    "        file.close()",
+                    "        applications.append(app.__dict__)",
+                    "",
+                    "  registry = open(os.path.join(application_root,\"registry.json\"),\"w\")",
+                    "  json.dump(applications, registry)",
+                    "  registry.close()",
+                    "",
+                    "if __name__ == \"__main__\":",
+                    "  main(sys.argv[1:])"
+                  ]]
+                },
+                "mode" : "000700"
+              },
+              "/root/crontab" : {
+                "content" : "0,15,30,45 * * * * /root/shiny-sync.sh > /dev/null 2>&1\n",
+                "mode" : "000600"
+              }
+            }
+          },
+          "update-shiny-server-config" : {
+            "files": {
+              "/etc/shiny-server/shiny-server.conf": {
+                "content": {
+                  "Fn::Join": [
+                    "\n",
+                    [
+                      "# Instruct Shiny Server to run applications as the user 'shiny'",
+                      "run_as shiny;",
+                      "",
+                      "# Specify the authentication method to be used.",
+                      "# Initially, a flat-file database stored at the path below.",
+                      "auth_passwd_file /etc/shiny-server/passwd;",
+                      "",
+                      "# Define a ssl server that listens on port 443",
+                      "server {",
+                      "  listen 443;",
+                      "  ssl /etc/pki/tls/private/localhost.key /etc/pki/tls/certs/localhost.crt;",
+                      "  # Define a location at the base URL",
+                      "  location / {",
+                      "",
+                      "# Only up tp 20 connections per Shiny process and at most 3 Shiny processes",
+                      "# per application. Proactively spawn a new process when our processes reach",
+                      "# 90% capacity.",
+                      "utilization_scheduler 20 .9 3;",
+                      "",
+                      "# Host the directory of Shiny Apps stored in this directory",
+                      "site_dir /home/shiny/apps;",
+                      "",
+                      "# Log all Shiny output to files in this directory",
+                      "log_dir /var/log/shiny-server;",
+                      "",
+                      "# When a user visits the base URL rather than a particular application,",
+                      "# an index of the applications available in this directory will be shown.",
+                      "directory_index on;",
+                      "}",
+                      "}",
+                      "",
+                      "# Provide the admin interface on port 4151",
+                      "admin 4151 {",
+                      "",
+                      "# Restrict the admin interface to the usernames listed here. Currently",
+                      "# just one user named 'admin' ",
+                      "required_user admin;",
+                      "}"
+                    ]
+                  ]
+                }
+              }
+            },
+            "commands": {
+              "activate-shiny-server" : {
+                "command" : {
+                  "Fn::Join" : ["", ["/opt/shiny-server/bin/license-manager activate ", {"Ref" : "ShinyKey"}]]
+                },
+                "ignoreErrors" : "true"
+              },
+              "shiny-server-restart": {
+                "command" : "restart shiny-server",
+                "ignoreErrors" : "true"
+              },
+              "install-crontab" : {
+                "command" : "crontab /root/crontab",
+                "ignoreErrors" : "true"
+              }
+            }
+          }
+        }
+      },
+      "CreationPolicy" : {
+        "ResourceSignal" : { "Timeout" : "PT30M" }
+      },
+      "Type" : "AWS::EC2::Instance"
+    },
+    "ShinyUserVolume" : {
+      "Properties" : {
+        "AvailabilityZone" : "us-east-1a",
+        "Encrypted" : "true",
+        "Size" : "5000",
+        "Tags" : [
+          { "Key" : "DeploymentTarget", "Value" : { "Ref" : "DeploymentTarget" } },
+          { "Key" : "Description", "Value" : "EBS Volume for Synchronizing Shiny Applications"}
+        ],
+        "VolumeType" : "gp2"
+      },
+      "Type" : "AWS::EC2::Volume"
+    },
+    "ShinyUserVolumeAttachment" : {
+      "Properties" : {
+        "Device" : "/dev/xvdn",
+        "InstanceId" : {"Ref" : "ShinyServerInstance" },
+        "VolumeId" : {"Ref" : "ShinyUserVolume" }
+      },
+      "Type" : "AWS::EC2::VolumeAttachment"
+    },
+    "GhapShinyServerDnsEntry": {
+      "Type": "AWS::Route53::RecordSet",
+      "Properties": {
+        "HostedZoneName": {"Ref": "Domain"},
+        "Comment": "DNS name for Shared Curator Instance",
+        "Type": "A",
+        "TTL": "900",
+        "Name": {
+          "Fn::Join": [
+            ".",
+            [
+              "visualizations",
+              {"Ref": "Domain"}
+            ]
+          ]
+        },
+        "ResourceRecords": [{"Fn::GetAtt": ["ShinyServerInstance", "PrivateIp"]}]
+      }
+    }
+  },
+  "Outputs" : {
+  }
+}

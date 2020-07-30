@@ -1,0 +1,94 @@
+<div class="content-wrapper clear">
+  <div class="content-row page-header">
+    <div class="content">
+      <h1>Program Assignment</h1>
+    </div>
+  </div>
+  <div class="content-row separator-header">
+    <div class="content">
+      <div class="grid gutter">
+        <div class="grid-col col-4-12">
+          <h4>Select Program</h4>
+        </div>
+        <div class="grid-col col-8-12">
+          <h4>Assign Users</h4>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="content-row white padded separator-left">
+    <div class="content">
+      <div class="grid gutter">
+        <div class="grid-col col-4-12 separator-padded-right">
+          <div class="dropdown-list-cont">
+            <div class="dropdown-list-cont__header">Programs</div>
+            <filter field="programFilter.name" placeholder="Search by program name"></filter>
+            <ul class="dropdown-list selectable">
+              <li class="dropdown-list__item"
+                  ng-class="{expanded: program.expanded, active: program.id == selectedProgram.id}"
+                  ng-repeat="program in programs | filter:programFilter">
+                <div class="dropdown-list__item__text"
+                     ng-click="getProgramUsers(program)">{{program.name}}</div>
+                <ul class="dropdown-list__sub-menu selectable">
+                  <li class="dropdown-list__sub-menu__item"
+                      ng-repeat="grant in program.grants"
+                      ng-class="{active: grant.id == selectedGrant.id}"
+                      ng-click="getGrantUsers(grant)">
+                    <div class="dropdown-list__item__text">{{grant.name}}</div>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="grid-col col-8-12 separator-padded-left">
+          <div class="check-list-cont">
+            <div class="check-list-cont__header">Users</div>
+            <filter field="userFilter.name" placeholder="Search by user name"></filter>
+            <ul class="check-list">
+              <li class="check-list__item" ng-repeat="user in users | filter:userFilter">
+                <span class="check-list__item__label">
+                  <input id="{{user.guid}}-checkbox" class="check-list__item__input" type="checkbox" ng-checked="isUserSelected(user)" ng-click="toggleUser(user)" ng-disabled="user.disabled">
+                  <label for="{{user.guid}}-checkbox" class="check-list__item__text">{{user.name}}</label>
+                  <label class="readonly" for="{{user.guid}}-readonly-checkbox">
+                    <input id="{{user.guid}}-readonly-checkbox"
+                           type="checkbox"
+                           ng-disabled="!isUserSelected(user)"
+                           ng-checked="readOnlyUsers[user.guid]"
+                           ng-click="toggleReadOnlyUser(user)"/>
+                    &nbsp;Read-only
+                  </label>
+                </span>
+              </li>
+            </ul>
+            <!-- <bgf-pagination collection="users"
+                            url="USERS_URL"
+                            per-page="20"
+                            auto-presets="false"
+                            template-url="views/directives/paginate-anything.html"></bgf-pagination> -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="content-row padded">
+    <div class="content">
+      <div class="grid gutter">
+        <div class="grid-col col-4-12"></div>
+        <div class="grid-col col-8-12">
+          <div class="grid gutter">
+            <div class="grid-col col-3-12">
+              <input type="submit" class="submit-button" ng-click="savePermissions()" value="ASSIGN" />
+            </div>
+            <div class="grid-col col-9-12 right-side-message">
+              <div ng-show="errors.length > 0" class="error-message-cont"><ul>
+                <li ng-repeat="error in errors">{{error}}</li>
+              </ul></div>
+              <div ng-show="success" class="success-message-cont" ng-bind-html="success"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

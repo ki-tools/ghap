@@ -1,0 +1,4 @@
+<configuration>
+    <root level="error" />
+    <logger name="com.sun.jersey.server.wadl.generators.AbstractWadlGeneratorGrammarGenerator" level="WARN"/>
+</configuration>

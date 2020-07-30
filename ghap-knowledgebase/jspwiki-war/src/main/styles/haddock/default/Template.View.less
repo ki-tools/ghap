@@ -1,0 +1,266 @@
+/*
+    JSPWiki - a JSP-based WikiWiki clone.
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); fyou may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+*/
+/*
+Section: Top level HTML structure
+
+DOM Structure:
+(start code)
+	div[.container|.container-fluid][.fav-left|.fav-right|.fav-hidden]
+		div.titlebox.alert
+		div.header
+		div.row							=>Template.Navs.less
+			ul.nav.nav-pills.pull-left
+			ul.nav.nav-pills.pull-right
+		div.content[.active]			=>Template.Content.less
+			div.page
+	        	div.page-content
+    	    	div.page-footer
+			div.sidebar					=>Template.Sidebar.less
+		div.footer
+(end)
+*/
+
+
+
+/*
+Section: Title box
+    The title box is an optional alert box at the top of the page, to put
+    web-site messages, alerts, new-flashes etc.
+    It contains the content of the [TitleBox] JSPWiki page.
+    Keep the styling minimal, as the TitleBox page itself can add any style it wants.
+*/
+//.titlebox { }
+
+
+/*
+Section: Header & Footer
+    See Header.jsp, SearchBox.jsp, UserBox.jsp, Footer.jsp
+
+DOM structure:
+(start code)
+    div.header
+      div.topline
+        div.pagename
+        div.pull-left
+            a.logo.href jspωiki  //link to the home page of this wiki
+
+        div.userbox
+            div.btn
+                span.icon-user
+                span.caret
+
+            ul.dropdown-menu[data-hover-parent="userbox"]
+                li
+      		        label.username.anonymous|asserted|authenticated
+      		    li
+                    a.btn.btn-link.login|logout  Log-in
+                    a.btn.btn-link.prefs  Prefs
+
+  		form#searchform.searchbox.pull-right.form-inline
+      		input#query.form-control[type="text"][placeholder="To search, type ahead"]
+
+		    ul.dropdown-menu.pull-right[data-hover-parent="searchbox"]
+		        li.dropdown-header
+              		button#searchSubmit.btn[type="submit"] For full search, hit enter...
+		        li.findpages ...create & clone buttons
+		        li.findpages ...other search results
+		        li.divider
+		        li.recents ...
+		        li.recents.clear ...
+
+
+      div.breadcrumbs
+
+    ...
+
+    div.footer
+        div.application-logo
+        div.copyright
+    	div.wikiversion JSPWiki version-number
+			a.feed
+(end)
+*/
+
+.container-fluid {
+	//margin:0 1em;
+
+    .header > * {
+        padding-right:@padding-base-horizontal;
+    }
+
+    > .row > ul.nav {
+        padding-right: @padding-base-horizontal;
+    }
+
+
+}
+
+.titlebox.alert { margin:0; }
+
+.header, .footer {
+    .clearfix;
+	position: relative;
+    font-family: @wiki-header-font-family;
+    font-weight: 200;
+    letter-spacing: 1px;
+    color: @wiki-header-color;
+    a { color:inherit; }
+
+    background-color:@wiki-header-bg;
+    #gradient .radial(@wiki-header-bg; darken(@wiki-header-bg,20%));
+
+    //background-image:url(images/background.jpg);  //todo: read it from a cookie or so
+    background-size:cover; //or contain;
+    //background-position:50% 0;
+    //background-repeat:no-repeat;
+    background-attachment:fixed; //default=scroll
+
+	> * {
+	    padding: @padding-base-horizontal/4 0 @padding-base-horizontal/4 @padding-base-horizontal;
+	}
+}
+
+.topline {
+    .clearfix();
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    .btn [class^="icon-"]:before { font-size: 1.3em; }
+}
+
+/* For hover-dropdowns, make sure there is no space between the button and the menu */
+.dropdown-menu[data-hover-parent] { margin-top: 0; }
+
+a.logo {
+    display: block;
+    font-family: @wiki-logo-font-family;
+    font-weight: 200;
+    letter-spacing: .3em;
+    text-decoration: none;
+    padding: 0.15em 0.1em .25em .45em;
+    //border: 1px solid @white;
+    //border-radius: .5em;
+    color: inherit;
+
+    b {
+        font-size: 150%;   //@font-size-base
+        font-weight: inherit;
+        line-height: 50%;
+        letter-spacing: .08em;
+    }
+    b:before { content:"\A"; white-space:pre ;}
+
+}
+
+
+.header .pagename,
+.header .breadcrumb {
+    .text-overflow();
+}
+
+.pagename {
+    font-family: @wiki-logo-font-family;
+    font-size: 3em;
+    text-align: center;
+    a { text-decoration:none; }
+
+    line-height: 1;
+    padding: 0.1em .5em;
+}
+.reader .pagename {
+    font-size: 3em;
+}
+
+//JSPWiki-s breadcrumb - do not inherit bootstraps breadcrumbs
+.breadcrumb {
+    .small;
+    .transition(all .5s ease);
+    color:transparent;
+
+    .divider:before {
+        content:"\2022";   //&bull;
+        padding:0 .25em;
+    }
+}
+.header:hover .breadcrumb {
+    color:inherit;
+    //background:rgba(255,255,255,0.05);
+}
+
+
+.footer {
+    //background: @wiki-footer-bg; //reuse header background
+    padding: @padding-base-horizontal;
+	text-align: center;
+
+}
+
+
+/*
+Section: Sticky Footer
+This seciontCSS add-on will ensure to stick the footer to the bottom of the window
+even when there’s not enough content to fill the page.
+
+Credits: https://philipwalton.github.io/solved-by-flexbox/demos/sticky-footer/
+*/
+
+
+body > .container-fluid,
+body > .container {
+  display: flex;
+  min-height: 100vh;
+  flex-flow: column;
+}
+.content {
+  flex: 1 1 auto;// we cannot use "flex: 1" since IE set "1 1 0" by default
+}
+
+
+.copyright, .wiki-version { .small; }
+
+.reader .copyright {
+    margin: 2em 0;
+}
+
+.feed {
+
+	//.@{fa-css-prefix};
+    display:inline-block;
+    font-family:FontJspwiki;
+	font-style: normal;
+    font-weight: normal;
+    line-height: 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-decoration:none;
+
+	&:before { content: "\e610"; } //fixme -- re-use .icon-search
+    &:hover { text-decoration:none; }
+
+    overflow:hidden;
+    vertical-align:middle;
+}
+
+
+// CHECKME
+// *** ConflictContent.jsp ***
+// #conflict
+// #conflictother
+// #conflictown
+

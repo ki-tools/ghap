@@ -1,0 +1,156 @@
+<div class="content-wrapper clear">
+  <div class="content-row padded align-center">
+    <div class="content">
+      <div class="grid">
+        <div class="grid-col col-2-12"></div>
+        <div class="grid-col col-8-12">
+          <h2>Welcome to the HBGDki Analytics Platform</h2>
+        </div>
+        <div class="grid-col col-2-12"></div>
+      </div>
+    </div>
+  </div>
+
+  <div ng-show="isDataContributor">
+    <div class="content-row align-center">
+      <div class="content">
+        <div class="grid">
+          <div class="grid-col col-2-12"></div>
+          <div class="grid-col col-8-12">
+
+            <div class="well-bg">
+              <input type="checkbox" ng-model="enableUploader">
+              You must select this checkbox in order to upload your data. In doing so, you certify and agree to the following:
+              <ol>
+                <li>
+                  You are legally responsible for removing all personally identifiable health or clinical information ("PHI") from files to be submitted through the Platform (per agreements established with the Bill and Melinda Gates Foundation).
+                </li>
+                <li>
+                  The Foundation will not accept any datasets containing PHI. If PHI is detected in a dataset after submission, the file(s) containing PHI will be deleted and the submitter will be notified to correct and re-submit relevant files.
+                </li>
+              </ol>
+            </div>
+
+            <p>&nbsp;</p>
+
+            <h3 class="no-padding">Please upload your data files below.</h3>
+            
+          </div>
+          <div class="grid-col col-2-12"></div>
+        </div>
+      </div>
+    </div>
+    <div class="content-row white" ng-controller="SubmitDatasetUploadCtrl">
+      <div class="content">
+        <div class="grid">
+          <div class="grid-col col-2-12"></div>
+          <div class="grid-col col-8-12 align-center">
+
+            <p>&nbsp;</p><p>&nbsp;</p>
+            
+            <!-- <h2 class='align-center file-drop-zone' nv-file-over="" nv-file-drop="" uploader="uploader" ng-show="enableUploader">Drag files here</h2>
+            <h2 class='align-center file-drop-zone mute' ng-hide="enableUploader">Drag files here</h2>
+            <h3 class='align-center'>or</h3>-->
+
+            <div class="btn-file file-upload" ng-click="tryToUpload()">
+              <div class="submit-button">SELECT FILES</div>
+              <input nv-file-select
+                     type="file"
+                     uploader="uploader"
+                     multiple
+                     ng-hide="!enableUploader" />
+            </div>
+
+            <p>&nbsp;</p>
+            <p>&nbsp;</p>
+            <div ng-if='uploadWarning' class='error-message-cont'>
+              In order to upload files, please select the checkbox above to certify and agree to terms regarding personally identifiable health or clinical information ("PHI").
+            </div>
+
+
+            <table ng-if="uploader.queue.length > 0">
+                <tbody>
+                    <tr ng-repeat="item in uploader.queue">
+                        <td><strong>{{ item.file.name }}</strong></td>
+                        <td ng-show="uploader.isHTML5" nowrap>{{ item.file.size/1024/1024|number:2 }} MB</td>
+                        <td ng-show="uploader.isHTML5" width="50%">
+                            <div class="progress" style="margin-bottom: 0;">
+                                <div class="progress-bar" role="progressbar" ng-style="{ 'width': item.progress + '%' }"></div>
+                            </div>
+                        </td>
+                </tbody>
+            </table>
+
+            <p>&nbsp;</p>
+            <h3 ng-show="uploaded && (!conflicts || conflicts.length === 0) && (!uploadErrors || uploadErrors.length === 0)" class="color-primary upload-message">
+              <img class="checkmark" src="/images/ic-checkmark.png" />Upload completed successfully!
+            </h3>
+
+            <h3 class="error-message-cont upload-message" ng-repeat="item in conflicts">
+              File "<em ng-bind="item.file.name"></em>" is already exists
+            </h3>
+
+            <h3 class="error-message-cont upload-message" ng-repeat="error in uploadErrors">
+              File "<em ng-bind="error.item.file.name"></em>" upload error
+            </h3>
+
+          </div>
+          <div class="grid-col col-2-12"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div ng-show="isDataCurator">
+    <div class="content-row padded align-center">
+      <div class="content">
+        <div class="grid">
+          <div class="grid-col col-2-12"></div>
+          <div class="grid-col col-8-12">
+            <h3 class="no-padding">Please download your data files below.</h3>
+          </div>
+          <div class="grid-col col-2-12"></div>
+        </div>
+      </div>
+    </div>
+    <div class="content-row white padded" ng-controller="SubmitDatasetDownloadCtrl">
+      <div class="content">
+        <div class="grid">
+          <div class="grid-col col-12-12">
+            <div class="error-message-cont" ng-show="error">{{error}}</div>
+            <table>
+              <thead>
+                <tr>
+                  <th class="table-col-icon"></th>
+                  <th class="table-col-name">Name</th>
+                  <th class="table-col-name">Date Uploaded</th>
+                  <th class="table-col-type">Type</th>
+                  <th class="table-col-type">Size</th>
+                  <th class="table-col-type">Username</th>
+                  <th class="table-col-download"></th>
+                  <th class="table-col-delete"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr ng-repeat="f in userData">
+                  <td class="table-col-icon" ng-class="::{folder: f.isDirectory, file: !f.isDirectory}"></td>
+                  <td class="table-col-name" ng-bind="::f.keyName"></td>
+                  <td class="table-col-name" ng-bind="::f.lastModified | date:'shortDate'"></td>
+                  <td class="table-col-type">
+                    <span ng-if="::f.isDirectory">Folder</span>
+                    <span ng-if="::!f.isDirectory">File</span>
+                  </td>
+                  <td class="table-col-type" ng-bind="::f.size | byteFmt: 2"></td>
+                  <td class="table-col-type" ng-bind="::f.userName"></td>
+                  <td class=""><a class="table-col-download" title="Download File" ng-href="{{::downloadPath(f)}}" ng-hide="::f.isDirectory"></a></td>
+                  <td class="table-col-remove" ng-click="::deleteFile(f)" title="Delete file"></td>
+                </tr>
+               </tbody>
+             </table>
+           </div>
+         </div>
+       </div>
+    </div>
+  </div>
+
+</div>

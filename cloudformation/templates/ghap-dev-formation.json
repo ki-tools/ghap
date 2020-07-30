@@ -1,0 +1,1107 @@
+{
+  "Description": "Top Level Cloudformation Stack for the GHAP Platform",
+  "Mappings": {
+    "AvailabilityZone": {
+      "A": {"ZONEID": "us-east-1a"},
+      "B": {"ZONEID": "us-east-1c"}
+    }
+  },
+  "Parameters": {
+    "DBAllocatedStorage": {
+      "ConstraintDescription": "Must be between 1 and 1024Gb.",
+      "Default": "5",
+      "Description": "The size of the database (Gb)",
+      "MaxValue": "1024",
+      "MinValue": "5",
+      "Type": "Number"
+    },
+    "DBPassword": {
+      "AllowedPattern": "[a-zA-Z0-9]+",
+      "ConstraintDescription": "must contain only alphanumeric characters.",
+      "Default": "",
+      "Description": "Database Password",
+      "MaxLength": "41",
+      "MinLength": "8",
+      "NoEcho": "true",
+      "Type": "String"
+    },
+    "DBUser": {
+      "AllowedPattern": "[a-zA-Z][a-zA-Z0-9]*",
+      "ConstraintDescription": "Must begin with a letter and contain only alphanumeric characters.",
+      "Default": "ghap",
+      "Description": "Database Username",
+      "MaxLength": "16",
+      "MinLength": "1",
+      "NoEcho": "true",
+      "Type": "String"
+    },
+    "KeyName": {
+      "ConstraintDescription": "Must be the name of an existing EC2 KeyPair.",
+      "Description": "EC2 Key Pair to allow SSH access to the instance",
+      "Type": "AWS::EC2::KeyPair::KeyName"
+    },
+    "SambaKeyName": {
+      "ConstraintDescription": "Must be the name of an existing EC2 KeyPair.",
+      "Description": "EC2 Key Pair to allow SSH access to the instance",
+      "Type": "AWS::EC2::KeyPair::KeyName"
+    },
+    "ServerAccess": {
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "must be a valid CIDR range of the form x.x.x.x/x.",
+      "Default": "0.0.0.0/0",
+      "Description": "CIDR IP range allowed to login to the NAT instance",
+      "MaxLength": "18",
+      "MinLength": "9",
+      "Type": "String"
+    },
+    "Domain": {
+      "Description": "Domain to configure this is either ghap.io. or dev.ghap.io.",
+      "Type": "String",
+      "Default": "dev.ghap.io."
+    },
+    "DeploymentTarget": {
+      "Description": "Deployment Target, this is either prod or dev",
+      "Type": "String",
+      "Default": "devtest"
+    },
+    "BeanstalkInstanceType": {
+      "Description": "The instance type to use for beanstalk",
+      "Type": "String",
+      "Default": "t2.medium"
+    }
+  },
+  "Conditions": {
+    "CreateDevTestResources": {
+      "Fn::Equals": [
+        {"Ref": "DeploymentTarget"},
+        "devtest"
+      ]
+    },
+    "CreateDevResources": {
+      "Fn::Equals": [
+        {"Ref": "DeploymentTarget"},
+        "dev"
+      ]
+    },
+    "CreateProdResources": {
+      "Fn::Equals": [
+        {"Ref": "DeploymentTarget"},
+        "prod"
+      ]
+    }
+  },
+  "Resources": {
+    "VPCStackFirstStage": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": "https://s3.amazonaws.com/ghap-dev-infrastructure/templates/ghap-vpc-stage-1.json",
+        "TimeoutInMinutes": "60",
+        "Parameters": {
+          "Domain": {"Ref": "Domain"}
+        }
+      }
+    },
+    "GhapSecurityGroups": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": "https://s3.amazonaws.com/ghap-dev-infrastructure/templates/ghap-securitygroups.json",
+        "TimeoutInMinutes": "60",
+        "Parameters": {
+          "GhapVPC": {
+            "Fn::GetAtt": [
+              "VPCStackFirstStage",
+              "Outputs.GhapVPCOutput"
+            ]
+          },
+          "ServerAccess": {"Ref": "ServerAccess"}
+        }
+      }
+    },
+    "VPCStackSecondStageA": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": "https://s3.amazonaws.com/ghap-dev-infrastructure/templates/ghap-vpc-stage-2.json",
+        "TimeoutInMinutes": "60",
+        "Parameters": {
+          "KeyName": {"Ref": "KeyName"},
+          "Configuration": "A",
+          "ServerAccess": {"Ref": "ServerAccess"},
+          "GhapNatSecurityGroup": {
+            "Fn::GetAtt": [
+              "GhapSecurityGroups",
+              "Outputs.GhapNatSecurityGroupOutput"
+            ]
+          },
+          "DeploymentTarget": {"Ref": "DeploymentTarget"},
+          "Domain": {"Ref": "Domain"},
+          "GhapVPC": {
+            "Fn::GetAtt": [
+              "VPCStackFirstStage",
+              "Outputs.GhapVPCOutput"
+            ]
+          },
+          "GhapInternetGateway": {
+            "Fn::GetAtt": [
+              "VPCStackFirstStage",
+              "Outputs.GhapInternetGatewayOutput"
+            ]
+          }
+        }
+      }
+    },
+    "VPCStackSecondStageB": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": "https://s3.amazonaws.com/ghap-dev-infrastructure/templates/ghap-vpc-stage-2.json",
+        "TimeoutInMinutes": "60",
+        "Parameters": {
+          "KeyName": {"Ref": "KeyName"},
+          "Configuration": "B",
+          "ServerAccess": {"Ref": "ServerAccess"},
+          "GhapNatSecurityGroup": {
+            "Fn::GetAtt": [
+              "GhapSecurityGroups",
+              "Outputs.GhapNatSecurityGroupOutput"
+            ]
+          },
+          "DeploymentTarget": {"Ref": "DeploymentTarget"},
+          "Domain": {"Ref": "Domain"},
+          "GhapVPC": {
+            "Fn::GetAtt": [
+              "VPCStackFirstStage",
+              "Outputs.GhapVPCOutput"
+            ]
+          },
+          "GhapInternetGateway": {
+            "Fn::GetAtt": [
+              "VPCStackFirstStage",
+              "Outputs.GhapInternetGatewayOutput"
+            ]
+          }
+        }
+      }
+    },
+    "S3Stack": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": "https://s3.amazonaws.com/ghap-dev-infrastructure/templates/ghap-s3.json",
+        "TimeoutInMinutes": "60",
+        "Parameters": {
+          "DeploymentTarget": {"Ref": "DeploymentTarget"}
+        }
+      }
+    },
+    "DeveloperStack" : {
+      "Condition" : "CreateDevTestResources",
+      "Type" : "AWS::CloudFormation::Stack",
+      "Properties" : {
+        "TemplateURL" : "https://s3.amazonaws.com/ghap-dev-infrastructure/templates/developer.json",
+        "TimeoutInMinutes" : "60"
+      }
+    },
+    "IAMStack": {
+      "DependsOn": ["S3Stack"],
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": "https://s3.amazonaws.com/ghap-dev-infrastructure/templates/ghap-iam.json",
+        "TimeoutInMinutes": "60",
+        "Parameters": {
+          "S3Submission": {
+            "Fn::GetAtt": [
+              "S3Stack",
+              "Outputs.SubmissionOutput"
+            ]
+          },
+          "S3ProvisioningTemplates": {
+            "Fn::GetAtt": [
+              "S3Stack",
+              "Outputs.ProvisioningTemplates"
+            ]
+          },
+          "S3Configuration": {
+            "Fn::GetAtt": [
+              "S3Stack",
+              "Outputs.ConfigurationOutput"
+            ]
+          },
+          "S3UserScratch": {
+            "Fn::GetAtt": [
+              "S3Stack",
+              "Outputs.UserScratchOutput"
+            ]
+          },
+          "S3Backup": {
+            "Fn::GetAtt": [
+              "S3Stack",
+              "Outputs.BackupOutput"
+            ]
+          },
+          "VisualizationApplications": {
+            "Fn::GetAtt": [
+              "S3Stack",
+              "Outputs.VisualizationApplicationsOutput"
+            ]
+          },
+          "DeploymentTarget": {"Ref": "DeploymentTarget"},
+          "Domain": {"Ref": "Domain"}
+        }
+      }
+    },
+    "StashStack": {
+      "DependsOn": [
+        "VPCStackFirstStage",
+        "VPCStackSecondStageA",
+        "VPCStackSecondStageB"
+      ],
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": "https://s3.amazonaws.com/ghap-dev-infrastructure/templates/ghap-stash.json",
+        "TimeoutInMinutes": "60",
+        "Parameters": {
+          "KeyName": {"Ref": "KeyName"},
+          "ServerAccess": {"Ref": "ServerAccess"},
+          "WebServerInstanceProfile": {
+            "Fn::GetAtt": [
+              "IAMStack",
+              "Outputs.WebServerInstanceProfileOutput"
+            ]
+          },
+          "DBAllocatedStorage": {"Ref": "DBAllocatedStorage"},
+          "DBUser": {"Ref": "DBUser"},
+          "DBPassword": {"Ref": "DBPassword"},
+          "GhapVPC": {
+            "Fn::GetAtt": [
+              "VPCStackFirstStage",
+              "Outputs.GhapVPCOutput"
+            ]
+          },
+          "GhapNatSecurityGroup": {
+            "Fn::GetAtt": [
+              "GhapSecurityGroups",
+              "Outputs.GhapNatSecurityGroupOutput"
+            ]
+          },
+          "GhapPrivateSubnetA": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageA",
+              "Outputs.GhapPrivateSubnetOutput"
+            ]
+          },
+          "GhapPrivateSubnetB": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageB",
+              "Outputs.GhapPrivateSubnetOutput"
+            ]
+          },
+          "GhapPublicSubnetA": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageA",
+              "Outputs.GhapPublicSubnetOutput"
+            ]
+          },
+          "GhapPublicSubnetB": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageB",
+              "Outputs.GhapPublicSubnetOutput"
+            ]
+          },
+          "GhapStashSecurityGroup": {
+            "Fn::GetAtt": [
+              "GhapSecurityGroups",
+              "Outputs.GhapStashSecurityGroupOutput"
+            ]
+          },
+          "GhapStashDBSecurityGroup": {
+            "Fn::GetAtt": [
+              "GhapSecurityGroups",
+              "Outputs.GhapStashDBSecurityGroupOutput"
+            ]
+          },
+          "DeploymentTarget": {"Ref": "DeploymentTarget"},
+          "Domain": {"Ref": "Domain"}
+        }
+      }
+    },
+    "WWWStack": {
+      "DependsOn": [
+        "VPCStackFirstStage",
+        "VPCStackSecondStageA",
+        "VPCStackSecondStageB",
+        "IAMStack"
+      ],
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": "https://s3.amazonaws.com/ghap-dev-infrastructure/templates/ghap-www.json",
+        "TimeoutInMinutes": "60",
+        "Parameters": {
+          "KeyName": {"Ref": "KeyName"},
+          "ServerAccess": {"Ref": "ServerAccess"},
+          "WebServerInstanceProfile": {
+            "Fn::GetAtt": [
+              "IAMStack",
+              "Outputs.WebServerInstanceProfileOutput"
+            ]
+          },
+          "GhapVPC": {
+            "Fn::GetAtt": [
+              "VPCStackFirstStage",
+              "Outputs.GhapVPCOutput"
+            ]
+          },
+          "GhapPrivateSubnetA": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageA",
+              "Outputs.GhapPrivateSubnetOutput"
+            ]
+          },
+          "GhapPrivateSubnetB": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageB",
+              "Outputs.GhapPrivateSubnetOutput"
+            ]
+          },
+          "GhapPublicSubnetA": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageA",
+              "Outputs.GhapPublicSubnetOutput"
+            ]
+          },
+          "GhapPublicSubnetB": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageB",
+              "Outputs.GhapPublicSubnetOutput"
+            ]
+          },
+          "DeploymentTarget": {"Ref": "DeploymentTarget"},
+          "Domain": {"Ref": "Domain"},
+          "BeanstalkInstanceType": {"Ref": "BeanstalkInstanceType"}
+        }
+      }
+    },
+    "SharedCuratorEnvStack": {
+      "Condition" : "CreateProdResources",
+      "DependsOn": [
+        "VPCStackFirstStage",
+        "VPCStackSecondStageA",
+        "VPCStackSecondStageB",
+        "IAMStack",
+        "ActiveDirectoryStack"
+      ],
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": "https://s3.amazonaws.com/ghap-dev-infrastructure/templates/ghap-curator.json",
+        "TimeoutInMinutes": "60",
+        "Parameters": {
+          "KeyName": {"Ref": "KeyName"},
+          "ServerAccess": {"Ref": "ServerAccess"},
+          "WebServerInstanceProfile": {
+            "Fn::GetAtt": [
+              "IAMStack",
+              "Outputs.WebServerInstanceProfileOutput"
+            ]
+          },
+          "GhapVPC": {
+            "Fn::GetAtt": [
+              "VPCStackFirstStage",
+              "Outputs.GhapVPCOutput"
+            ]
+          },
+          "GhapPrivateSubnetA": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageA",
+              "Outputs.GhapPrivateSubnetOutput"
+            ]
+          },
+          "GhapPrivateSubnetB": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageB",
+              "Outputs.GhapPrivateSubnetOutput"
+            ]
+          },
+          "GhapPublicSubnetA": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageA",
+              "Outputs.GhapPublicSubnetOutput"
+            ]
+          },
+          "GhapPublicSubnetB": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageB",
+              "Outputs.GhapPublicSubnetOutput"
+            ]
+          },
+          "GhapWindowsEnvSecurityGroup": {
+            "Fn::GetAtt": [
+              "GhapSecurityGroups",
+              "Outputs.GhapWindowsEnvSecurityGroupOutput"
+            ]
+          },
+          "DeploymentTarget": {"Ref": "DeploymentTarget"},
+          "Domain": {"Ref": "Domain"}
+        }
+      }
+    },
+    "KMSEnvStack": {
+      "DependsOn": [
+        "VPCStackFirstStage",
+        "VPCStackSecondStageA",
+        "VPCStackSecondStageB",
+        "IAMStack",
+        "ActiveDirectoryStack"
+      ],
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": "https://s3.amazonaws.com/ghap-dev-infrastructure/templates/ghap-kms.json",
+        "TimeoutInMinutes": "60",
+        "Parameters": {
+          "KeyName": {"Ref": "KeyName"},
+          "ServerAccess": {"Ref": "ServerAccess"},
+          "WebServerInstanceProfile": {
+            "Fn::GetAtt": [
+              "IAMStack",
+              "Outputs.WebServerInstanceProfileOutput"
+            ]
+          },
+          "GhapVPC": {
+            "Fn::GetAtt": [
+              "VPCStackFirstStage",
+              "Outputs.GhapVPCOutput"
+            ]
+          },
+          "GhapPrivateSubnetA": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageA",
+              "Outputs.GhapPrivateSubnetOutput"
+            ]
+          },
+          "GhapNatSecurityGroup": {
+            "Fn::GetAtt": [
+              "GhapSecurityGroups",
+              "Outputs.GhapNatSecurityGroupOutput"
+            ]
+          },
+          "GhapPrivateSubnetB": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageB",
+              "Outputs.GhapPrivateSubnetOutput"
+            ]
+          },
+          "GhapPublicSubnetA": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageA",
+              "Outputs.GhapPublicSubnetOutput"
+            ]
+          },
+          "GhapPublicSubnetB": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageB",
+              "Outputs.GhapPublicSubnetOutput"
+            ]
+          },
+          "GhapWindowsEnvSecurityGroup": {
+            "Fn::GetAtt": [
+              "GhapSecurityGroups",
+              "Outputs.GhapWindowsEnvSecurityGroupOutput"
+            ]
+          },
+          "DeploymentTarget": {"Ref": "DeploymentTarget"},
+          "Domain": {"Ref": "Domain"}
+        }
+      }
+    },
+    "ActiveDirectoryStack": {
+      "DependsOn": [
+        "VPCStackFirstStage",
+        "VPCStackSecondStageA",
+        "VPCStackSecondStageB",
+        "IAMStack"
+      ],
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": "https://s3.amazonaws.com/ghap-dev-infrastructure/templates/ghap-activedirectory.json",
+        "TimeoutInMinutes": "60",
+        "Parameters": {
+          "KeyName": {"Ref": "KeyName"},
+          "ServerAccess": {"Ref": "ServerAccess"},
+          "GhapVPC": {
+            "Fn::GetAtt": [
+              "VPCStackFirstStage",
+              "Outputs.GhapVPCOutput"
+            ]
+          },
+          "GhapPrivateSubnetA": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageA",
+              "Outputs.GhapPrivateSubnetOutput"
+            ]
+          },
+          "GhapNatSecurityGroup": {
+            "Fn::GetAtt": [
+              "GhapSecurityGroups",
+              "Outputs.GhapNatSecurityGroupOutput"
+            ]
+          },
+          "GhapPrivateSubnetB": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageB",
+              "Outputs.GhapPrivateSubnetOutput"
+            ]
+          },
+          "GhapPublicSubnetA": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageA",
+              "Outputs.GhapPublicSubnetOutput"
+            ]
+          },
+          "GhapPublicSubnetB": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageB",
+              "Outputs.GhapPublicSubnetOutput"
+            ]
+          },
+          "GhapWindowsSambaSecurityGroup": {
+            "Fn::GetAtt": [
+              "GhapSecurityGroups",
+              "Outputs.GhapWindowsSambaSecurityGroupOutput"
+            ]
+          },
+          "DeploymentTarget": {"Ref": "DeploymentTarget"},
+          "Domain": {"Ref": "Domain"}
+        }
+      }
+    },
+    "RShinyServerStack": {
+      "DependsOn": [
+        "VPCStackFirstStage",
+        "VPCStackSecondStageA",
+        "VPCStackSecondStageB",
+        "IAMStack"
+      ],
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": "https://s3.amazonaws.com/ghap-dev-infrastructure/templates/ghap-rshinyserver.json",
+        "TimeoutInMinutes": "60",
+        "Parameters": {
+          "KeyName": {"Ref": "KeyName"},
+          "ServerAccess": {"Ref": "ServerAccess"},
+          "GhapVPC": {
+            "Fn::GetAtt": [
+              "VPCStackFirstStage",
+              "Outputs.GhapVPCOutput"
+            ]
+          },
+          "GhapPrivateSubnetA": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageA",
+              "Outputs.GhapPrivateSubnetOutput"
+            ]
+          },
+          "GhapNatSecurityGroup": {
+            "Fn::GetAtt": [
+              "GhapSecurityGroups",
+              "Outputs.GhapNatSecurityGroupOutput"
+            ]
+          },
+          "GhapPrivateSubnetB": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageB",
+              "Outputs.GhapPrivateSubnetOutput"
+            ]
+          },
+          "GhapPublicSubnetA": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageA",
+              "Outputs.GhapPublicSubnetOutput"
+            ]
+          },
+          "GhapPublicSubnetB": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageB",
+              "Outputs.GhapPublicSubnetOutput"
+            ]
+          },
+          "GhapRShinySecurityGroup": {
+            "Fn::GetAtt": [
+              "GhapSecurityGroups",
+              "Outputs.GhapRShinySecurityGroupOutput"
+            ]
+          },
+          "DeploymentTarget": {"Ref": "DeploymentTarget"},
+          "Domain": {"Ref": "Domain"},
+          "ShinyKey" : "MW9H-IFAR-MKH4-FWNR-DXZI-9DWB-XITA"
+        }
+      }
+    },
+    "UserServiceStack": {
+      "DependsOn": [
+        "VPCStackFirstStage",
+        "VPCStackSecondStageA",
+        "VPCStackSecondStageB",
+        "IAMStack"
+      ],
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": "https://s3.amazonaws.com/ghap-dev-infrastructure/templates/ghap-user-service.json",
+        "TimeoutInMinutes": "60",
+        "Parameters": {
+          "KeyName": {"Ref": "KeyName"},
+          "ServerAccess": {"Ref": "ServerAccess"},
+          "WebServerInstanceProfile": {
+            "Fn::GetAtt": [
+              "IAMStack",
+              "Outputs.WebServerInstanceProfileOutput"
+            ]
+          },
+          "DBAllocatedStorage": {"Ref": "DBAllocatedStorage"},
+          "DBUser": {"Ref": "DBUser"},
+          "DBPassword": {"Ref": "DBPassword"},
+          "GhapVPC": {
+            "Fn::GetAtt": [
+              "VPCStackFirstStage",
+              "Outputs.GhapVPCOutput"
+            ]
+          },
+          "GhapPrivateSubnetA": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageA",
+              "Outputs.GhapPrivateSubnetOutput"
+            ]
+          },
+          "GhapPrivateSubnetB": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageB",
+              "Outputs.GhapPrivateSubnetOutput"
+            ]
+          },
+          "GhapPublicSubnetA": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageA",
+              "Outputs.GhapPublicSubnetOutput"
+            ]
+          },
+          "GhapPublicSubnetB": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageB",
+              "Outputs.GhapPublicSubnetOutput"
+            ]
+          },
+          "DeploymentTarget": {"Ref": "DeploymentTarget"},
+          "Domain": {"Ref": "Domain"},
+          "BeanstalkInstanceType": {"Ref": "BeanstalkInstanceType"},
+          "GhapUserServiceSambaSecurityGroup": {
+            "Fn::GetAtt": [
+              "GhapSecurityGroups",
+              "Outputs.GhapUserServiceSambaSecurityGroupOutput"
+            ]
+          },
+          "GhapBeanstalkSecurityGroup": {
+            "Fn::GetAtt": [
+              "GhapSecurityGroups",
+              "Outputs.GhapBeanstalkSecurityGroupOutput"
+            ]
+          },
+          "GhapUserServiceDBSecurityGroup": {
+            "Fn::GetAtt": [
+              "GhapSecurityGroups",
+              "Outputs.GhapUserServiceDBSecurityGroupOutput"
+            ]
+          }
+        }
+      }
+    },
+    "OAuthServerStack": {
+      "DependsOn": [
+        "VPCStackFirstStage",
+        "VPCStackSecondStageA",
+        "VPCStackSecondStageB",
+        "IAMStack"
+      ],
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": "https://s3.amazonaws.com/ghap-dev-infrastructure/templates/ghap-oauth-server.json",
+        "TimeoutInMinutes": "60",
+        "Parameters": {
+          "KeyName": {"Ref": "KeyName"},
+          "ServerAccess": {"Ref": "ServerAccess"},
+          "WebServerInstanceProfile": {
+            "Fn::GetAtt": [
+              "IAMStack",
+              "Outputs.WebServerInstanceProfileOutput"
+            ]
+          },
+          "DBAllocatedStorage": {"Ref": "DBAllocatedStorage"},
+          "DBUser": {"Ref": "DBUser"},
+          "DBPassword": {"Ref": "DBPassword"},
+          "GhapVPC": {
+            "Fn::GetAtt": [
+              "VPCStackFirstStage",
+              "Outputs.GhapVPCOutput"
+            ]
+          },
+          "GhapPrivateSubnetA": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageA",
+              "Outputs.GhapPrivateSubnetOutput"
+            ]
+          },
+          "GhapPrivateSubnetB": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageB",
+              "Outputs.GhapPrivateSubnetOutput"
+            ]
+          },
+          "GhapPublicSubnetA": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageA",
+              "Outputs.GhapPublicSubnetOutput"
+            ]
+          },
+          "GhapPublicSubnetB": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageB",
+              "Outputs.GhapPublicSubnetOutput"
+            ]
+          },
+          "DeploymentTarget": {"Ref": "DeploymentTarget"},
+          "Domain": {"Ref": "Domain"},
+          "BeanstalkInstanceType": {"Ref": "BeanstalkInstanceType"},
+          "GhapBeanstalkSecurityGroup": {
+            "Fn::GetAtt": [
+              "GhapSecurityGroups",
+              "Outputs.GhapBeanstalkSecurityGroupOutput"
+            ]
+          },
+          "GhapOAuth2DBSecurityGroup": {
+            "Fn::GetAtt": [
+              "GhapSecurityGroups",
+              "Outputs.GhapOAuth2DBSecurityGroupOutput"
+            ]
+          }
+        }
+      }
+    },
+    "ProjectServiceStack": {
+      "DependsOn": [
+        "VPCStackFirstStage",
+        "VPCStackSecondStageA",
+        "VPCStackSecondStageB",
+        "IAMStack"
+      ],
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": "https://s3.amazonaws.com/ghap-dev-infrastructure/templates/ghap-project-service.json",
+        "TimeoutInMinutes": "60",
+        "Parameters": {
+          "KeyName": {"Ref": "KeyName"},
+          "ServerAccess": {"Ref": "ServerAccess"},
+          "WebServerInstanceProfile": {
+            "Fn::GetAtt": [
+              "IAMStack",
+              "Outputs.WebServerInstanceProfileOutput"
+            ]
+          },
+          "DBAllocatedStorage": {"Ref": "DBAllocatedStorage"},
+          "DBUser": {"Ref": "DBUser"},
+          "DBPassword": {"Ref": "DBPassword"},
+          "DeploymentTarget": {"Ref": "DeploymentTarget"},
+          "GhapVPC": {
+            "Fn::GetAtt": [
+              "VPCStackFirstStage",
+              "Outputs.GhapVPCOutput"
+            ]
+          },
+          "GhapPrivateSubnetA": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageA",
+              "Outputs.GhapPrivateSubnetOutput"
+            ]
+          },
+          "GhapPrivateSubnetB": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageB",
+              "Outputs.GhapPrivateSubnetOutput"
+            ]
+          },
+          "GhapPublicSubnetA": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageA",
+              "Outputs.GhapPublicSubnetOutput"
+            ]
+          },
+          "GhapPublicSubnetB": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageB",
+              "Outputs.GhapPublicSubnetOutput"
+            ]
+          },
+          "GhapBeanstalkSecurityGroup": {
+            "Fn::GetAtt": [
+              "GhapSecurityGroups",
+              "Outputs.GhapBeanstalkSecurityGroupOutput"
+            ]
+          },
+          "GhapProjectDBSecurityGroup": {
+            "Fn::GetAtt": [
+              "GhapSecurityGroups",
+              "Outputs.GhapProjectDBSecurityGroupOutput"
+            ]
+          },
+          "Domain": {"Ref": "Domain"},
+          "BeanstalkInstanceType": {"Ref": "BeanstalkInstanceType"}
+        }
+      }
+    },
+    "ProvisioningServiceStack" : {
+      "DependsOn": [
+        "VPCStackFirstStage",
+        "VPCStackSecondStageA",
+        "VPCStackSecondStageB",
+        "IAMStack"
+      ],
+      "Type" : "AWS::CloudFormation::Stack",
+      "Properties" : {
+        "TemplateURL" : "https://s3.amazonaws.com/ghap-dev-infrastructure/templates/ghap-provisioning-service.json",
+        "TimeoutInMinutes" : "60",
+        "Parameters" : {
+          "KeyName" : { "Ref" : "KeyName" },
+          "ServerAccess" : { "Ref" : "ServerAccess" },
+          "WebServerInstanceProfile" : { "Fn::GetAtt" : [ "IAMStack", "Outputs.WebServerInstanceProfileOutput" ] },
+          "DBAllocatedStorage" : { "Ref" : "DBAllocatedStorage" },
+          "DBUser" : { "Ref" : "DBUser" },
+          "DBPassword" : { "Ref" : "DBPassword" },
+          "GhapVPC": {
+            "Fn::GetAtt": [
+              "VPCStackFirstStage",
+              "Outputs.GhapVPCOutput"
+            ]
+          },
+          "GhapPrivateSubnetA": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageA",
+              "Outputs.GhapPrivateSubnetOutput"
+            ]
+          },
+          "GhapPrivateSubnetB": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageB",
+              "Outputs.GhapPrivateSubnetOutput"
+            ]
+          },
+          "GhapPublicSubnetA": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageA",
+              "Outputs.GhapPublicSubnetOutput"
+            ]
+          },
+          "GhapPublicSubnetB": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageB",
+              "Outputs.GhapPublicSubnetOutput"
+            ]
+          },
+          "GhapBeanstalkSecurityGroup": {
+            "Fn::GetAtt": [
+              "GhapSecurityGroups",
+              "Outputs.GhapBeanstalkSecurityGroupOutput"
+            ]
+          },
+          "GhapProvisioningDBSecurityGroup": {
+            "Fn::GetAtt": [
+              "GhapSecurityGroups",
+              "Outputs.GhapProvisioningDBSecurityGroupOutput"
+            ]
+          },
+          "ModelerAccessKey" : {"Fn::GetAtt" : [ "IAMStack", "Outputs.ModelerAccessKeyOutput" ]},
+          "ModelerSecretKey" : {"Fn::GetAtt" : [ "IAMStack", "Outputs.ModelerSecretKeyOutput" ]},
+          "DeploymentTarget" : { "Ref" : "DeploymentTarget" },
+          "Domain" : { "Ref" : "Domain" },
+          "BeanstalkInstanceType" : { "Ref" : "BeanstalkInstanceType" }
+        }
+      }
+    },
+    "ActivityServiceStack" : {
+      "DependsOn": [
+        "VPCStackFirstStage",
+        "VPCStackSecondStageA",
+        "VPCStackSecondStageB",
+        "IAMStack"
+      ],
+      "Type" : "AWS::CloudFormation::Stack",
+      "Properties" : {
+        "TemplateURL" : "https://s3.amazonaws.com/ghap-dev-infrastructure/templates/ghap-activity-service.json",
+        "TimeoutInMinutes" : "60",
+        "Parameters" : {
+          "KeyName" : { "Ref" : "KeyName" },
+          "ServerAccess" : { "Ref" : "ServerAccess" },
+          "WebServerInstanceProfile" : { "Fn::GetAtt" : [ "IAMStack", "Outputs.WebServerInstanceProfileOutput" ] },
+          "GhapVPC": {
+            "Fn::GetAtt": [
+              "VPCStackFirstStage",
+              "Outputs.GhapVPCOutput"
+            ]
+          },
+          "GhapPrivateSubnetA": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageA",
+              "Outputs.GhapPrivateSubnetOutput"
+            ]
+          },
+          "GhapPrivateSubnetB": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageB",
+              "Outputs.GhapPrivateSubnetOutput"
+            ]
+          },
+          "GhapPublicSubnetA": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageA",
+              "Outputs.GhapPublicSubnetOutput"
+            ]
+          },
+          "GhapPublicSubnetB": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageB",
+              "Outputs.GhapPublicSubnetOutput"
+            ]
+          },
+          "GhapBeanstalkSecurityGroup": {
+            "Fn::GetAtt": [
+              "GhapSecurityGroups",
+              "Outputs.GhapBeanstalkSecurityGroupOutput"
+            ]
+          },
+          "GhapActivityDBSecurityGroup": {
+            "Fn::GetAtt": [
+              "GhapSecurityGroups",
+              "Outputs.GhapActivityDBSecurityGroupOutput"
+            ]
+          },
+          "DBAllocatedStorage" : { "Ref" : "DBAllocatedStorage" },
+          "DBUser" : { "Ref" : "DBUser" },
+          "DBPassword" : { "Ref" : "DBPassword" },
+          "DeploymentTarget" : { "Ref" : "DeploymentTarget" },
+          "Domain" : { "Ref" : "Domain" },
+          "BeanstalkInstanceType" : { "Ref" : "BeanstalkInstanceType" }
+        }
+      }
+    },
+    "DataSubmissionStack" : {
+      "DependsOn": [
+        "VPCStackFirstStage",
+        "VPCStackSecondStageA",
+        "VPCStackSecondStageB",
+        "IAMStack"
+      ],
+      "Type" : "AWS::CloudFormation::Stack",
+      "Properties" : {
+        "TemplateURL" : "https://s3.amazonaws.com/ghap-dev-infrastructure/templates/ghap-datasubmission.json",
+        "TimeoutInMinutes" : "60",
+        "Parameters" : {
+          "KeyName" : { "Ref" : "KeyName" },
+          "ServerAccess" : { "Ref" : "ServerAccess" },
+          "WebServerInstanceProfile" : { "Fn::GetAtt" : [ "IAMStack", "Outputs.WebServerInstanceProfileOutput" ] },
+          "GhapVPC": {
+            "Fn::GetAtt": [
+              "VPCStackFirstStage",
+              "Outputs.GhapVPCOutput"
+            ]
+          },
+          "GhapPrivateSubnetA": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageA",
+              "Outputs.GhapPrivateSubnetOutput"
+            ]
+          },
+          "GhapPrivateSubnetB": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageB",
+              "Outputs.GhapPrivateSubnetOutput"
+            ]
+          },
+          "GhapPublicSubnetA": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageA",
+              "Outputs.GhapPublicSubnetOutput"
+            ]
+          },
+          "GhapPublicSubnetB": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageB",
+              "Outputs.GhapPublicSubnetOutput"
+            ]
+          },
+          "GhapBeanstalkSecurityGroup": {
+            "Fn::GetAtt": [
+              "GhapSecurityGroups",
+              "Outputs.GhapBeanstalkSecurityGroupOutput"
+            ]
+          },
+          "SubmitterAccessKey" : {"Fn::GetAtt" : [ "IAMStack", "Outputs.SubmitterAccessKeyOutput" ]},
+          "SubmitterSecretKey" : {"Fn::GetAtt" : [ "IAMStack", "Outputs.SubmitterSecretKeyOutput" ]},
+          "DeploymentTarget" : { "Ref" : "DeploymentTarget" },
+          "Domain" : { "Ref" : "Domain" },
+          "BeanstalkInstanceType" : { "Ref" : "BeanstalkInstanceType" }
+        }
+      }
+    },
+    "UserDataStack" : {
+      "DependsOn": [
+        "VPCStackFirstStage",
+        "VPCStackSecondStageA",
+        "VPCStackSecondStageB",
+        "IAMStack"
+      ],
+      "Type" : "AWS::CloudFormation::Stack",
+      "Properties" : {
+        "TemplateURL" : "https://s3.amazonaws.com/ghap-dev-infrastructure/templates/ghap-userdata.json",
+        "TimeoutInMinutes" : "60",
+        "Parameters" : {
+          "KeyName" : { "Ref" : "KeyName" },
+          "ServerAccess" : { "Ref" : "ServerAccess" },
+          "WebServerInstanceProfile" : { "Fn::GetAtt" : [ "IAMStack", "Outputs.WebServerInstanceProfileOutput" ] },
+          "GhapVPC": {
+            "Fn::GetAtt": [
+              "VPCStackFirstStage",
+              "Outputs.GhapVPCOutput"
+            ]
+          },
+          "GhapPrivateSubnetA": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageA",
+              "Outputs.GhapPrivateSubnetOutput"
+            ]
+          },
+          "GhapPrivateSubnetB": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageB",
+              "Outputs.GhapPrivateSubnetOutput"
+            ]
+          },
+          "GhapPublicSubnetA": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageA",
+              "Outputs.GhapPublicSubnetOutput"
+            ]
+          },
+          "GhapPublicSubnetB": {
+            "Fn::GetAtt": [
+              "VPCStackSecondStageB",
+              "Outputs.GhapPublicSubnetOutput"
+            ]
+          },
+          "GhapBeanstalkSecurityGroup": {
+            "Fn::GetAtt": [
+              "GhapSecurityGroups",
+              "Outputs.GhapBeanstalkSecurityGroupOutput"
+            ]
+          },
+          "ModelerAccessKey" : {"Fn::GetAtt" : [ "IAMStack", "Outputs.ModelerAccessKeyOutput" ]},
+          "ModelerSecretKey" : {"Fn::GetAtt" : [ "IAMStack", "Outputs.ModelerSecretKeyOutput" ]},
+          "DeploymentTarget" : { "Ref" : "DeploymentTarget" },
+          "Domain" : { "Ref" : "Domain" },
+          "BeanstalkInstanceType" : { "Ref" : "BeanstalkInstanceType" }
+        }
+      }
+    }
+  }
+}

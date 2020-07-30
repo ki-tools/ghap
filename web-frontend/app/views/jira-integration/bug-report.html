@@ -1,0 +1,74 @@
+<div class=" bg-white" modaldraggable modalresizable>
+
+
+
+    <form name="_form" target="hidden-form" ng-submit="submit(_form)">
+
+        <jira-hidden-fields type="Support Request"></jira-hidden-fields>
+
+        <div class="modal-header">
+            <button type="button" class="close" aria-label="Close" ng-click="dismiss()"><span
+                    aria-hidden="true">&times;</span></button>
+            <h3>Report a Problem</h3>
+        </div>
+        <div class="modal-body">
+
+
+            <div class="input-cont">
+                <label>Summary of Problem</label>
+                <input class="text-input" type="text" name="Abstract" required>
+            </div>
+
+            <div class="input-cont">
+                <label>Screen Shot of Point of Failure or Error Message</label>
+                <input type="file" name="issueData[]" multiple>
+            </div>
+
+            <!--
+            <div class="input-cont">
+                <label>Priority</label>
+                <select class="text-input" name="Severity" required>
+                    <option disabled="disabled">Choose One</option>
+                    <option value="1-Prevents Use">1-Prevents Use</option>
+                    <option value="3-Impairs Use" selected>2-Impairs Use</option>
+                    <option value="4-Annoyance">3-Annoyance</option>
+                </select>
+            </div>
+            -->
+
+            <div class="input-cont">
+                <label>Severity Category</label>
+                <select class="text-input" name="SeverityCategory" required>
+                    <option value="Incoming">Incoming</option>
+                    <option value="A - User cannot access GHAP (i.e. system is unavailable) ">A - User cannot access GHAP (i.e. system is unavailable) </option>
+                    <option value="B - User cannot complete key task(s) [No Workaround]">B - User cannot complete key task(s) [No Workaround]</option>
+                    <option value="C - User is inconvenienced while completing key task(s) [Workaround Exists]">C - User is inconvenienced while completing key task(s) [Workaround Exists]</option>
+                    <option value="D - User submits a “how to” question">D - User submits a “how to” question</option>
+                    <option value="E - User suggests a system improvement">E - User suggests a system improvement</option>
+                </select>
+            </div>
+
+            <div class="input-cont">
+                <label>Detailed description of steps to reproduce problem</label>
+                <textarea class="text-input" style="height: 5em" name="Description"></textarea>
+            </div>
+
+            <div class="input-cont">
+                <label>User ID</label>
+                <input class="text-input" type="text" name="ProductUser" required ng-model="user.name">
+            </div>
+
+            <div class="input-cont">
+                <label>Email</label>
+                <input class="text-input" type="email" name="ErrorSubmitter" required ng-model="user.email">
+            </div>
+
+            <div ng-show="errors.length > 0" class="error-message-cont"><br><div ng-repeat="error in errors">{{error}}</div></div>
+
+        </div>
+        <div class="modal-footer">
+            <input type="button" ng-click="dismiss()" class="default-button" tabindex="-1" value="Cancel"/>
+            <input type="submit" class="submit-button" tabindex="-1" value="Submit" ng-disabled="isSubmissionInProgress()" />
+        </div>
+    </form>
+</div>

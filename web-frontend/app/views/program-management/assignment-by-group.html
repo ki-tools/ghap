@@ -1,0 +1,110 @@
+<div class="content-wrapper clear assignment-by-group">
+  <div class="content-row page-header">
+    <div class="content">
+      <h1>Program Assignment</h1>
+    </div>
+  </div>
+  <div class="content-row separator-header">
+    <div class="content">
+      <div class="grid gutter">
+        <div class="grid-col col-4-12">
+          <h4>Select Group</h4>
+        </div>
+        <div class="grid-col col-8-12">
+          <h4>Assign Program</h4>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="content-row white padded separator-left">
+    <div class="content">
+      <div class="grid gutter">
+        <div class="grid-col col-4-12 separator-padded-right">
+          <div class="check-list-cont">
+            <div class="list-cont__header">Groups</div>
+            <filter field="groupFilter.name" placeholder="Search by group name"></filter>
+            <ul class="list selectable">
+              <li class="list__item" ng-repeat="group in groups | filter:groupFilter" ng-class="{active: group.dn == selectedGroup.dn}" ng-click="getGroupPrograms(group)">
+                <span class="list__item__text">{{group.name}}</span>
+              </li>
+            </ul>
+            <!-- <bgf-pagination collection="groups"
+                            url="USERS_URL"
+                            per-page="20"
+                            auto-presets="false"
+                            template-url="views/directives/paginate-anything.html"></bgf-pagination> -->
+          </div>
+        </div>
+        <div class="grid-col col-8-12 separator-padded-left">
+          <div class="check-list-cont">
+            <div class="check-list-cont__header">Programs</div>
+            <filter field="programFilter.name" placeholder="Search by program name"></filter>
+            <ul class="check-list">
+              <li class="check-list__item"
+                  ng-repeat="program in programs | filter:programFilter | orderBy: 'name'"
+                  ng-class="{expanded: program.expanded && program.grants.length > 0}">
+                  <input type="checkbox"
+                         class="check-list__item__input"
+                         ng-checked="isProgramSelected(program)"
+                         ng-click="toggleProgram(program)"/>
+                  <div class="check-list__item__text"
+                       ng-click="getAndSelectSelectedGrants(program)">
+                    <img src="/images/ic-arrow.png">
+                    {{program.name}}
+                  </div>
+                  <label class="readonly" for="{{program.id}}-program-checkbox">
+                    <input id="{{program.id}}-program-checkbox"
+                           type="checkbox"
+                           ng-disabled="!isProgramSelected(program)"
+                           ng-checked="readOnlyPrograms[program.id]"
+                           ng-click="toggleReadOnlyProgram(program)" />
+                    &nbsp;Read-only
+                  </label>
+                  <ul class="check-list__sub-menu">
+                    <li class="check-list__sub-menu__item" ng-repeat="grant in program.grants | orderBy: 'name'">
+                      <div class="check-list__item__label">
+                        <input type="checkbox"
+                               class="check-list__item__input"
+                               ng-checked="isGrantSelected(grant)"
+                               ng-click="toggleGrant(grant)"
+                               ng-disabled="disabledGrants[grant.id]"/>
+                        <div class="check-list__item__text">{{grant.name}}</div>
+                        <label class="readonly" for="{{grant.id}}-grant-checkbox">
+                          <input id="{{grant.id}}-grant-checkbox"
+                                 type="checkbox"
+                                 ng-disabled="isProgramSelected(program) || disabledGrants[grant.id]"
+                                 ng-checked="readOnlyGrants[grant.id]"
+                                 ng-click="toggleReadOnlyGrant(grant)" />
+                          &nbsp;Read-only
+                        </label>
+                      </div>
+                    </li>
+                  </ul>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="content-row padded">
+    <div class="content">
+      <div class="grid gutter">
+        <div class="grid-col col-4-12"></div>
+        <div class="grid-col col-8-12">
+          <div class="grid gutter">
+            <div class="grid-col col-3-12">
+              <input type="submit" class="submit-button" ng-click="savePermissions()" value="ASSIGN" />
+            </div>
+            <div class="grid-col col-9-12 right-side-message">
+              <div ng-show="errors.length > 0" class="error-message-cont"><ul>
+                <li ng-repeat="error in errors">{{error}}</li>
+              </ul></div>
+              <div ng-show="success" class="success-message-cont" ng-bind-html="success"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

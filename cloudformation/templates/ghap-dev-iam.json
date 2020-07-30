@@ -1,0 +1,61 @@
+{
+  "Description" : "Cloudformation Stack for the IAM Roles/Profiles and Policies for the GHAP Platform",
+  "Parameters": {
+    "S3CuratorStaging": {
+      "Description": "The curator staging s3 bucket",
+      "Type": "String",
+      "Default" : "default"
+    },
+    "Domain": {
+      "Description" : "Domain to configure this is either ghap.io. or dev.ghap.io.",
+      "Type" : "String",
+      "Default" : "ghap.io."
+    },
+    "DeploymentTarget": {
+      "AllowedValues" : ["prod", "dev","devtest", "samba"],
+      "ConstraintDescription" : "Must specify prod or test.",  
+      "Description": "DeploymentTarget values these are either prod or test",
+      "Type": "String"
+    } 
+  },
+  "Conditions" : {
+    "CreateDevTestResources" : {"Fn::Equals" : [{"Ref" : "DeploymentTarget"}, "dev"]},
+    "CreateProdResources" : {"Fn::Equals" : [{"Ref" : "DeploymentTarget"}, "prod"]}
+  },
+  "Mappings" : {
+    "Region2Principal": {
+      "ap-northeast-1": { "EC2Principal": "ec2.amazonaws.com", "OpsWorksPrincipal": "opsworks.amazonaws.com" },
+      "ap-southeast-1": { "EC2Principal": "ec2.amazonaws.com", "OpsWorksPrincipal": "opsworks.amazonaws.com" },
+      "ap-southeast-2": { "EC2Principal": "ec2.amazonaws.com", "OpsWorksPrincipal": "opsworks.amazonaws.com" },
+      "eu-west-1": { "EC2Principal": "ec2.amazonaws.com", "OpsWorksPrincipal": "opsworks.amazonaws.com" },
+      "sa-east-1": { "EC2Principal": "ec2.amazonaws.com", "OpsWorksPrincipal": "opsworks.amazonaws.com" },
+      "us-east-1": { "EC2Principal": "ec2.amazonaws.com", "OpsWorksPrincipal": "opsworks.amazonaws.com" },
+      "us-west-1": { "EC2Principal": "ec2.amazonaws.com", "OpsWorksPrincipal": "opsworks.amazonaws.com" },
+      "us-west-2": { "EC2Principal": "ec2.amazonaws.com", "OpsWorksPrincipal": "opsworks.amazonaws.com" }
+    }
+  },
+  "Resources" : {
+    "CuratorsDev": {
+      "Condition" : "CreateDevTestResources",
+      "Properties": {
+        "Path": "/curatorsdev/",
+        "Policies" : [{
+          "PolicyName" : "CuratorDataStagingPolicy",
+          "PolicyDocument" : {
+            "Statement":[ {
+              "Effect":"Allow",
+              "Action":[ "s3:ListBucket", "s3:GetBucketLocation" ],
+              "Resource": { "Fn::Join" : [ "", ["arn:aws:s3:::",{"Ref" : "S3CuratorStaging"} ]] }
+            },
+            {
+              "Effect":"Allow",
+              "Action":[ "s3:PutObject", "s3:GetObject", "s3:DeleteObject" ],
+               "Resource": { "Fn::Join" : [ "", ["arn:aws:s3:::",{"Ref" : "S3CuratorStaging"},"/*" ]] }
+            }]
+          }
+        }]
+      },
+      "Type": "AWS::IAM::Group"
+    }
+  }
+}

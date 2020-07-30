@@ -1,0 +1,13 @@
+/{projectId}/revokeProjectPermissions/{userId}
+
+curl -i -H "Content-Type: application/json" -X PUT -d '["READ","WRITE"]' http://192.168.1.33:8080/project/8a6a5e31-9e7b-462d-bb77-fa01e6eb683c/revokeProjectPermissions/8cc28a99-4518-4053-9fe1-075ce89e96c7
+
+path param - user id, field guid returned by user-manager
+
+path param - project id
+
+array of permissions required. possible values ["READ","WRITE"]  ["READ"]  ["WRITE"]
+
+response example
+
+{"success":true,"errors":null,"data":null}

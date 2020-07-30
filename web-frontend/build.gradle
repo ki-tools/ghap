@@ -1,0 +1,105 @@
+import org.gradle.api.tasks.Exec
+import org.apache.tools.ant.taskdefs.condition.Os
+
+apply plugin: 'java'
+apply plugin: 'war'
+apply plugin: 'com.bmuschko.tomcat'
+
+buildscript {
+  repositories {
+    jcenter()
+  }
+
+  dependencies {
+    classpath 'com.bmuschko:gradle-tomcat-plugin:2.1'
+  }
+}
+
+repositories {
+ 	maven {
+        url "http://treebase.sourceforge.net/maven2"
+    }
+    jcenter()
+}
+
+dependencies {
+  providedCompile 'javax.servlet:javax.servlet-api:3.0.1'
+  compile 'org.apache.directory.api:apache-ldap-api:1.0.0-M29'
+  compile 'org.slf4j:slf4j-api:1.7.10'
+  compile 'org.slf4j:slf4j-simple:1.7.10'
+  compile 'com.amazonaws:aws-java-sdk:1.9.30'
+
+  // configuration
+  compile 'com.netflix.archaius:archaius-aws:0.6.6'
+
+  def tomcatVersion = '7.0.59'
+  tomcat "org.apache.tomcat.embed:tomcat-embed-core:${tomcatVersion}",
+         "org.apache.tomcat.embed:tomcat-embed-logging-juli:${tomcatVersion}",
+         "org.apache.tomcat.embed:tomcat-embed-jasper:${tomcatVersion}"
+}
+
+task explodedWar(type: Copy) {
+  into "$buildDir/exploded"
+  with war
+}
+
+task npm(type: Exec) {
+    group = "Build"
+    description = "Installs all Node.js dependencies defined in package.json"
+    commandLine = ["npm", "install"]
+    inputs.file "package.json"
+    outputs.dir "node_modules"
+}
+
+class GruntTask extends Exec {
+    private String gruntExecutable = Os.isFamily(Os.FAMILY_WINDOWS) ? "grunt.cmd" : "grunt"
+    def gruntArgs = ""
+    def output = new ByteArrayOutputStream()
+    def File outputFile = null
+
+    public GruntTask() {
+        super()
+        this.setExecutable(gruntExecutable)
+        // Don't fail immediately after executing the command, we must save the output to a file first...
+        this.setIgnoreExitValue(true)
+        // Capture output...
+        this.setStandardOutput(output)
+        this.setErrorOutput(output)
+    }
+
+    public void setGruntArgs(String gruntArgs) {
+        this.args = "$gruntArgs".trim().split(" ") as List
+        // Construct an output file name with gruntArgs...
+        def reportsDir = new File(project.buildDir, "reports")
+        this.outputFile = new File(reportsDir, gruntArgs + ".txt")
+        this.outputs.file outputFile
+        // After executing command...
+        this.doLast {
+            // Save output to a file
+            output.close()
+            outputFile.parentFile.mkdirs()
+            outputFile.text = output.toString()
+            // Log errors (if any)
+            def result = getExecResult()
+            if (result.exitValue != 0) {
+                logger.error(output.toString())
+            }
+            // Fail build if Grunt failed
+            result.assertNormalExitValue()
+        }
+    }
+}
+
+task gruntBuild(type: GruntTask) {
+    group = "Build"
+    description = "Runs the grunt"
+    gruntArgs = "--force"
+}
+
+test {
+    // set JVM arguments for the test JVM(s)
+    jvmArgs "-Daws.secretKey=${System.getProperty('aws.secretKey')}", "-Daws.accessKeyId=${System.getProperty('aws.accessKeyId')}"
+}
+
+war.dependsOn explodedWar
+//explodedWar.dependsOn gruntBuild

@@ -1,0 +1,306 @@
+{
+  "Description" : "Cloudformation Stack for User Service",
+  "Parameters": {
+    "KeyName": {
+      "ConstraintDescription": "Must be the name of an existing EC2 KeyPair.",
+      "Description": "EC2 Key Pair to allow SSH access to the instance",
+      "Type": "AWS::EC2::KeyPair::KeyName"
+    },
+    "ServerAccess": {
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "must be a valid CIDR range of the form x.x.x.x/x.",
+      "Default": "0.0.0.0/0",
+      "Description": "CIDR IP range allowed to login to the NAT instance",
+      "MaxLength": "18",
+      "MinLength": "9",
+      "Type": "String"
+    },
+    "WebServerInstanceProfile" : {
+      "Description": "The Web Server Instance Profile Id",
+      "Type": "String"
+    },
+    "GhapVPC": {
+      "ConstraintDescription": "The VPC Id",
+      "Description": "The VPC Id",
+      "Type": "String"
+    },
+    "GhapPrivateSubnetA": {
+      "Description": "Private Subnet Id for Availability Zone",
+      "Type": "String"
+    },
+    "GhapPrivateSubnetB": {
+      "Description": "Private Subnet Id for Availability Zone",
+      "Type": "String"
+    },
+    "GhapPublicSubnetA": {
+      "Description": "Public Subnet Id for Availability Zone",
+      "Type": "String"
+    },
+    "GhapPublicSubnetB": {
+      "Description": "Public Subnet Id for Availability Zone",
+      "Type": "String"
+    },
+    "DBAllocatedStorage": {
+      "ConstraintDescription": "Must be between 1 and 1024Gb.",
+      "Default": "5",
+      "Description": "The size of the database (Gb)",
+      "MaxValue": "1024",
+      "MinValue": "5",
+      "Type": "Number"
+    },
+    "DBPassword": {
+      "AllowedPattern": "[a-zA-Z0-9]+",
+      "ConstraintDescription": "must contain only alphanumeric characters.",
+      "Default": "globalhealthanalysisplatform",
+      "Description": "Database Password",
+      "MaxLength": "41",
+      "MinLength": "1",
+      "NoEcho": "true",
+      "Type": "String"
+    },
+    "DBUser": {
+      "AllowedPattern": "[a-zA-Z][a-zA-Z0-9]*",
+      "ConstraintDescription": "Must begin with a letter and contain only alphanumeric characters.",
+      "Default": "ghap",
+      "Description": "Database Username",
+      "MaxLength": "16",
+      "MinLength": "1",
+      "NoEcho": "true",
+      "Type": "String"
+    },
+    "Domain": {
+      "Description": "The domain or subdomain to be used.",
+      "Type": "String",
+      "ConstraintDescription" : "Must specify ghap.io, dev.ghap.io., or qa.ghap.io.",
+      "AllowedValues" : ["ghap.io.", "samba.ghap.io.", "dev.ghap.io.", "qa.ghap.io."]
+    },
+    "BeanstalkInstanceType" : {
+      "Description" : "The instance type to use for beanstalk",
+      "Type" : "String",
+      "Default" : "t2.medium"
+    },
+    "DeploymentTarget" : {
+      "Description" : "Deployment Target, this is either prod or dev",
+      "Type" : "String",
+      "AllowedValues" : ["prod", "qa","devtest", "samba"],
+      "Default" : "prod"
+    },
+    "GhapUserServiceDBSecurityGroup" : {
+      "Type" : "String",
+      "Description": "Ghap UserServiceDB Security Group Id"
+    },
+    "GhapBeanstalkSecurityGroup" : {
+      "Type" : "String",
+      "Description" : "Ghap User Service Beanstalk Security Group Id"
+    },
+    "GhapUserServiceSambaSecurityGroup" : {
+      "Type" : "String",
+      "Description" : "Ghap User Service Samba Access Security Group"
+    },
+    "GhapUserServiceTopicSubscriberARN" : {
+      "Type" : "String",
+      "Description" : "The Lambda handler that can handle notifications from the user service"
+    }
+  },
+  "Conditions": {
+    "CreateDevTestResources": {
+      "Fn::Equals": [
+        {"Ref": "DeploymentTarget"},
+        "devtest"
+      ]
+    },
+    "CreateProdResources": {
+      "Fn::Equals": [
+        {"Ref": "DeploymentTarget"},
+        "prod"
+      ]
+    },
+    "CreateQAResources": {
+      "Fn::Equals": [
+        {"Ref": "DeploymentTarget"},
+        "qa"
+      ]
+    }
+  },
+  "Resources" : {
+    "GhapUserServiceDBSubnetGroup": {
+      "Properties": {
+        "DBSubnetGroupDescription": "User Service DB Subnet Group",
+        "SubnetIds": [ { "Ref": "GhapPrivateSubnetA" },{ "Ref": "GhapPrivateSubnetB" } ]
+      },
+      "Type": "AWS::RDS::DBSubnetGroup"
+    },
+    "GhapUserServiceDatabase": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "AllocatedStorage": {  "Ref": "DBAllocatedStorage" },
+        "DBInstanceClass": "db.m3.medium",
+        "DBSnapshotIdentifier":"quartz-db-v2",
+        "DBSecurityGroups": [ { "Ref": "GhapUserServiceDBSecurityGroup" } ],
+        "DBSubnetGroupName": { "Ref": "GhapUserServiceDBSubnetGroup" },
+        "Engine": "postgres",
+        "EngineVersion": "9.3.5",
+        "MasterUserPassword": { "Ref": "DBPassword" },
+        "MasterUsername": { "Ref": "DBUser" },
+        "MultiAZ": "true",
+        "PubliclyAccessible": "false",
+        "VPCSecurityGroups": [ { "Ref" : "GhapBeanstalkSecurityGroup"}  ]
+      },
+      "Type": "AWS::RDS::DBInstance"
+    },
+    "GhapUserServiceApplication": {
+      "Properties": {
+        "Description": "GHAP User Service"
+      },
+      "Type": "AWS::ElasticBeanstalk::Application"
+    },
+    "GhapUserServiceEnvironment": {
+      "Properties": {
+        "CNAMEPrefix" : {"Fn::Join" : ["-", [ "ghap", "userservice", { "Ref" : "AWS::Region"}, {"Ref" : "DeploymentTarget" }]]},
+        "ApplicationName": { "Ref": "GhapUserServiceApplication" },
+        "Description": "Ghap User Service",
+        "TemplateName": { "Ref": "GhapUserServiceTemplate" }
+      },
+      "Type": "AWS::ElasticBeanstalk::Environment"
+    },
+    "GhapUserServiceTemplate": {
+      "Properties": {
+        "ApplicationName": {
+          "Ref": "GhapUserServiceApplication"
+        },
+        "Description": "Ghap User Service Configuration Template",
+        "OptionSettings": [
+          {
+            "Namespace": "aws:autoscaling:launchconfiguration",
+            "OptionName": "EC2KeyName",
+            "Value": { "Ref": "KeyName" }
+          },
+          {
+            "Namespace": "aws:autoscaling:launchconfiguration",
+            "OptionName": "IamInstanceProfile",
+            "Value": { "Ref": "WebServerInstanceProfile" }
+          },
+          {
+            "Namespace": "aws:autoscaling:launchconfiguration",
+            "OptionName": "InstanceType",
+            "Value": {"Ref" : "BeanstalkInstanceType"}
+          },
+          {
+            "Namespace": "aws:autoscaling:launchconfiguration",
+            "OptionName": "SecurityGroups",
+            "Value": { "Ref": "GhapBeanstalkSecurityGroup" }
+          },
+          {
+            "Namespace": "aws:elasticbeanstalk:application:environment",
+            "OptionName": "s3.config.bucket",
+            "Value": { "Fn::Join" : ["-",["ghap-configuration", {"Ref":"AWS::Region"} ,{"Ref":"DeploymentTarget"}]] }
+          },
+          {
+            "Namespace": "aws:elasticbeanstalk:application:environment",
+            "OptionName": "archaius.deployment.environment",
+            "Value": {"Ref":"DeploymentTarget"}
+          },
+          {
+            "Namespace": "aws:elasticbeanstalk:application:environment",
+            "OptionName": "org.quartz.properties",
+            "Value": { "Fn::Join" : ["", ["quartz-", {"Ref":"DeploymentTarget"},".properties"]]}
+          },
+          {
+            "Namespace": "aws:elb:loadbalancer",
+            "OptionName" : "SSLCertificateId",
+            "Value" : "arn:aws:iam::091012940692:server-certificate/userserviceservice.ghap.io"
+          },
+          {
+            "Namespace": "aws:elb:loadbalancer",
+            "OptionName": "LoadBalancerPortProtocol",
+            "Value": "HTTP"
+          },
+          {
+            "Namespace": "aws:elb:loadbalancer",
+            "OptionName": "LoadBalancerHTTPPort",
+            "Value": "80"
+          },
+          {
+            "Namespace": "aws:elb:loadbalancer",
+            "OptionName": "LoadBalancerHTTPSPort",
+            "Value": "443"
+          },
+          {
+            "Namespace": "aws:elb:loadbalancer",
+            "OptionName": "LoadBalancerSSLPortProtocol",
+            "Value": "HTTPS"
+          },
+          {
+            "Namespace": "aws:ec2:vpc",
+            "OptionName": "VPCId",
+            "Value": { "Ref": "GhapVPC" }
+          },
+          {
+            "Namespace": "aws:ec2:vpc",
+            "OptionName": "AssociatePublicIpAddress",
+            "Value": true
+          },
+          {
+            "Namespace": "aws:ec2:vpc",
+            "OptionName": "Subnets",
+            "Value": {
+              "Fn::Join": [
+                ",",
+                [ { "Ref": "GhapPublicSubnetA" }, { "Ref": "GhapPublicSubnetB" } ]
+              ]
+            }
+          },
+          {
+            "Namespace": "aws:ec2:vpc",
+            "OptionName": "ELBSubnets",
+            "Value": {
+              "Fn::Join": [
+                ",",
+                [ { "Ref": "GhapPublicSubnetA" }, { "Ref": "GhapPublicSubnetB" } ]
+              ]
+            }
+          },
+          {
+            "Namespace": "aws:elasticbeanstalk:application:environment",
+            "OptionName": "JDBC_CONNECTION_STRING",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  "jdbc:postgresql://",{ "Fn::GetAtt": [ "GhapUserServiceDatabase", "Endpoint.Address" ] },
+                  ":",{ "Fn::GetAtt": [ "GhapUserServiceDatabase", "Endpoint.Port" ] },
+                  "/UserServiceDB"
+                ]
+              ]
+            }
+          }
+        ],
+        "SolutionStackName": "64bit Amazon Linux 2015.03 v2.0.1 running Tomcat 8 Java 8"
+      },
+      "Type": "AWS::ElasticBeanstalk::ConfigurationTemplate"
+    },
+    "UserServiceDnsEntry" : {
+      "DependsOn" : ["GhapUserServiceEnvironment"],
+      "Type" : "AWS::Route53::RecordSet",
+      "Properties" : {
+        "HostedZoneName" : {"Ref" : "Domain"},
+        "Comment" : "DNS name for the User Service",
+        "Type" : "CNAME",
+        "TTL" : "900",
+        "Name" : {"Fn::Join" : [".", [ "userservice", { "Ref" : "Domain" }]]},
+        "ResourceRecords" : [ { "Fn::GetAtt" : [ "GhapUserServiceEnvironment", "EndpointURL"]} ]
+      }
+    },
+    "GhapUserServiceSNSTopic": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "DisplayName" : "GHAP User Service SNS Topic",
+        "Subscription" : [
+          { "Endpoint" : { "Ref" : "GhapUserServiceTopicSubscriberARN"}, "Protocol" : "lambda" }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+  }
+}

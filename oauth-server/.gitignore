@@ -1,0 +1,11 @@
+*.iml
+*.classpath
+*.project
+.idea/*
+gen/*
+out/*
+target/*
+null/*
+.settings
+target-eclipse/*
+cobertura.ser

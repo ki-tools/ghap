@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rest-client version="3.5"><request><http-version>1.1</http-version><http-follow-redirects/><URL>http://localhost:8080/user/all/CN=Users,DC=prod, DC=ghap,DC=io</URL><method>GET</method><auth><basic><preemptive/><username>administrator</username><password></password></basic></auth><headers><header key="Range" value="0-2"/></headers></request></rest-client>

@@ -1,0 +1,45 @@
+<div>
+
+  <div class="modal-header">
+      <button type="button"
+              class="close"
+              aria-label="Close"
+              ng-click="cancel()"><span aria-hidden="true">&times;</span></button>
+      <h3>{{selectedReport.typeName}}</h3>
+  </div>
+
+  <div class="modal-body">
+    <div class="input-cont" ng-show="selectedReport.constraintTypes.indexOf('DATE_RANGE') > -1">
+      <h4>Set Report Parameters</h4>
+      <div class="grid gutter">
+        <div class="grid-col col-6-12">
+          <input placeholder="Set beginning date"
+                 class="text-input text-input--calendar"
+                 id="start-datepicker"
+                 ng-model="start">
+        </div>
+        <div class="grid-col col-6-12">
+          <input placeholder="Set ending date"
+                 class="text-input text-input--calendar"
+                 id="end-datepicker"
+                 ng-model="end">
+        </div>
+        <script type="text/javascript">
+          // TODO refactor because it is dirty!
+          $("#start-datepicker").datepicker({ dateFormat: "yy-mm-dd", maxDate: '0' });
+          $("#end-datepicker").datepicker({ dateFormat: "yy-mm-dd", maxDate: '0' });
+        </script>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-footer">
+      <p class="error-message-cont error-message-cont--report"
+           ng-show="error">{{error}}</p>
+      <button ng-click="cancel()"
+              class="default-button">Cancel</button>
+      <button ng-click="create()"
+              class="submit-button">Create Report</button>
+  </div>
+
+</div>

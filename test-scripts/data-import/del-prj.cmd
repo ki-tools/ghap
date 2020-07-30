@@ -1,0 +1,1 @@
+node ../frisby-tests/spec/utils/ghap-delete-project %1 %2 %3 %4

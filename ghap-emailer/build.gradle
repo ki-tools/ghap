@@ -1,0 +1,112 @@
+import com.amazonaws.services.lambda.model.InvocationType;
+
+import jp.classmethod.aws.gradle.lambda.AWSLambdaDeleteFunctionTask;
+import jp.classmethod.aws.gradle.lambda.AWSLambdaInvokeTask;
+import jp.classmethod.aws.gradle.lambda.AWSLambdaMigrateFunctionTask;
+
+buildscript {
+  repositories {
+    maven {
+      url "https://plugins.gradle.org/m2/"
+    }
+  }
+  dependencies {
+    classpath group: 'gradle.plugin.com.webcohesion.enunciate', name: 'enunciate-gradle', version: '2.0.0'
+    classpath "net.saliman:gradle-cobertura-plugin:2.2.8"
+    classpath "jp.classmethod.aws:gradle-aws-plugin:0.+"
+  }
+}
+
+apply plugin: 'java'
+apply plugin: 'net.saliman.cobertura'
+apply plugin: 'application'
+
+cobertura {
+  coverageFormats = ['html', 'xml']
+}
+
+repositories {
+    jcenter()
+    maven {
+        url 'https://artifacts.dev.ghap.io/artifactory/ext-snapshot-local'
+    }
+}
+
+configurations.all {
+    // check for updates every build
+    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+}
+
+dependencies {
+    compile 'com.google.code.gson:gson:2.3.1'
+    compile 'com.amazonaws:aws-java-sdk:1.10.43'
+    compile 'com.amazonaws:aws-java-sdk-lambda:1.10.43'
+    compile 'com.amazonaws:aws-lambda-java-core:1.1.0'
+    compile 'org.slf4j:slf4j-api:1.7.10'
+    compile 'com.sun.mail:javax.mail:1.4.7'
+    compile 'org.slf4j:jul-to-slf4j:1.7.10'
+    testCompile 'junit:junit:4.10'
+
+    runtime 'ch.qos.logback:logback-classic:1.1.3'
+}
+
+apply plugin: 'com.webcohesion.enunciate'
+
+tasks.enunciate {
+  configFileName = "enunciate.xml"
+  File enunciateDistDir = file("src/main/webapp")
+  export("docs", enunciateDistDir)
+}
+
+task buildZip(type: Zip) {
+    from compileJava
+    from processResources
+    into('lib') {
+        from configurations.runtime
+    }
+}
+
+apply plugin: 'jp.classmethod.aws'
+
+aws {
+    //profileName = 'bmgf-dev'
+    profileName = 'bmgf'
+    region = 'us-east-1'
+}
+
+apply plugin: 'base'
+apply plugin: 'jp.classmethod.aws.lambda'
+
+lambda {
+    region = "us-east-1"
+}
+
+/*
+task migrateFunction(type: AWSLambdaMigrateFunctionTask, dependsOn: buildZip) {
+    functionName = "EmailProcessor"
+    //role = "arn:aws:iam::${aws.accountId}:role/lambda-emailer-role/ghap-samba-IAMStack-SUD80-EmailerLambdaFunctionHan-1RRWXFSYU86V4"
+    role = "arn:aws:iam::${aws.accountId}:role/ambda-emailer-role/ghap-prod-IAMStack-85JOGE-EmailerLambdaFunctionHan-1BREUOKZHUWR0"
+    zipFile = buildZip.archivePath
+    runtime = 'java8'
+    handler = "io.ghap.emailer.lambda.EmailProcessorHandler"
+}
+*/
+
+task moreStartScripts(type: CreateStartScripts) {
+  mainClassName = "io.ghap.emailer.ConfigurationClient"
+  applicationName = "ConfigurationClient"
+  outputDir = new File(project.buildDir, 'scripts')
+  classpath = jar.outputs.files + project.configurations.runtime
+}
+
+distributions {
+  main {
+    applicationName = "EmailMappingClient"
+    mainClassName = "io.ghap.emailer.EmailMappingClient"
+    applicationDistribution.into("bin") {
+      from(moreStartScripts)
+      fileMode = 0755
+    }
+  }
+}
+

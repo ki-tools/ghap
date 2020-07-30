@@ -1,0 +1,56 @@
+{
+  "Description" : "Cloudformation Stack for the Developer IAM Roles/Profiles and Policies for the GHAP Platform",
+  "Resources" : {
+    "DeveloperPolicy": {
+      "Properties": {
+        "Groups": [ { "Ref": "Developers" } ],
+        "PolicyDocument": {
+          "Statement": [ 
+            { "Action": "s3:*", "Effect": "Allow", "Resource": "*" },
+            { "Action": "ec2:*", "Effect" : "Allow", "Resource" : "*" },
+            { "Action": "elasticbeanstalk:*", "Effect" : "Allow", "Resource" : "*" },
+            { "Action": "elasticloadbalancing:*", "Effect" : "Allow", "Resource" : "*" },
+            { "Action": "autoscaling:*", "Effect" : "Allow", "Resource" : "*" },
+            { "Action": "cloudwatch:*", "Effect" : "Allow", "Resource" : "*" },
+            { "Action": "sns:*", "Effect" : "Allow", "Resource" : "*" },
+            { "Action": "cloudformation:*", "Effect" : "Allow", "Resource" : "*" },
+            { "Action": "rds:*", "Effect" : "Allow", "Resource" : "*" },
+            { "Action": "sqs:*", "Effect" : "Allow", "Resource" : "*" },
+            { "Action": "iam:PassRole", "Effect" : "Allow", "Resource" : "*" },
+            { "Action": "iam:List*", "Effect" : "Allow", "Resource" : "*" }
+           ]
+        },
+        "PolicyName": "Developers",
+        "Roles": [ { "Ref": "DeveloperRole" } ]
+      },
+      "Type": "AWS::IAM::Policy"
+    },
+    "DeveloperRole": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "sts:AssumeRole"
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "ds.amazonaws.com"
+                ]
+              }
+            }
+          ]
+        },
+        "Path": "/developers/"
+      },
+      "Type": "AWS::IAM::Role"
+    },
+    "Developers": {
+      "Properties": {
+        "Path": "/developers/"
+      },
+      "Type": "AWS::IAM::Group"
+    }
+  }
+}

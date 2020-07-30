@@ -1,0 +1,104 @@
+@import 'bootstrap/_variables';
+@import 'variables';
+
+.navbar-form {
+  .form-control {
+    height: initial;
+    font-size: 14px;
+    line-height: $line-height-base;
+  }
+}
+
+.content {
+  & > .grid-col {
+    & > .navbar-form {
+      margin-top: 0;
+      margin-bottom: 0;
+    }
+  }
+}
+.form-group, .schema-form-array  {
+
+  margin-bottom: 15px;
+
+  .ui-select-multiple.ui-select-bootstrap {
+    text-align: left;
+    padding: 5px 3px 0 3px;
+    height: 45px;
+    font-size: 2rem;
+
+    .ui-select-match .close {
+      font-size: 1.6em;
+      line-height: 1.0;
+    }
+
+    input.ui-select-search {
+      font-size: 2rem;
+    }
+  }
+
+  .sr-only {
+    display: none;
+  }
+
+  .control-label {
+    color: #aaa092;
+    font-weight: 600;
+    font-size: 2.0rem;
+    line-height: 2.2rem;
+    width: 100%;
+    display: block;
+    padding-bottom: 4px;
+    text-align: left;
+  }
+
+  .help-block {
+    display: block;
+    margin-top: 5px;
+    margin-bottom: 10px;
+    color: #737373;
+    text-align: left;
+  }
+  .btn[type=submit] {
+    border: none;
+    -webkit-appearance: none;
+    border-radius: 0px;
+
+    font-size: 2.2rem;
+    line-height: 2.4rem;
+    font-weight: 700;
+    color: $color-quinary;
+    font-family: $font-family-sans;
+    min-width: 120px;
+    padding: 0px 40px;
+    height: 48px;
+    transition: background-color ease .25s;
+
+    &.btn-primary {
+      background: #3086ab;
+
+      &:hover {
+        background-color: $button-color-active;
+      }
+    }
+
+    &.btn-default {
+      background: lightgrey;
+      color: #392d1c;
+
+      &:hover {
+        background-color: silver;
+      }
+    }
+  }
+}
+
+.schema-form-array  {
+  .btn {
+    font-size: 1.2rem;
+    line-height: 1.4rem;
+    min-width: 60px;
+    padding: 0px 20px;
+    height: 24px;
+  }
+}

@@ -1,0 +1,18 @@
+'use strict';
+
+/**
+ * @ngdoc directive
+ * @name bmgfApp.directive:focusOn
+ * @description
+ * # focusOn
+ */
+angular.module('bmgfApp')
+  .directive('focusOn', function($timeout) {
+    return function(scope, elem, attr) {
+      scope.$on('focusOn', function(e, name) {
+        if(name === attr.focusOn) {
+          $timeout(function(){elem[0].focus();}, 0);
+        }
+      });
+    };
+  });

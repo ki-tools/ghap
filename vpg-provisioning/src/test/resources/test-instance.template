@@ -1,0 +1,189 @@
+{
+  "Description": "Cloudformation Stack for Testing the Provisioning Service",
+  "Parameters": {
+    "GhapTestSecurityGroup" : {
+      "Type" : "String"
+    },
+    "GhapTestPublicSubnet" : {
+      "Type" : "String"
+    }
+  },
+  "Resources": {
+    "GhapTestProvisioningServiceInstance": {
+      "Properties": {
+        "AvailabilityZone": "us-east-1c",
+        "ImageId": "ami-00381a68",
+        "InstanceType": "c4.xlarge",
+        "KeyName": "ghap-dev",
+        "NetworkInterfaces": [
+          {
+            "AssociatePublicIpAddress": true,
+            "DeleteOnTermination": true,
+            "DeviceIndex": "0",
+            "GroupSet": [
+              {
+                "Ref": "GhapTestSecurityGroup"
+              }
+            ],
+            "SubnetId": { "Ref": "GhapTestPublicSubnet" }
+          }
+        ],
+        "SourceDestCheck": false,
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash\n",
+                "hostname ghap-provisioning-test-env\n",
+                "cfn-init -s ",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                "         -r GhapTestProvisioningServiceInstance ",
+                "         -c InstallAndRun \n",
+                "# Signal the status from cfn-init\n",
+                "cfn-signal -e $? ",
+                "           --stack=",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                "           --resource=GhapTestProvisioningServiceInstance \n"
+              ]
+            ]
+          }
+        }
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Init": {
+          "configSets": {
+            "InstallAndRun": [
+              "init","postgresql-update-conf","postgresql-enable","postgresql-create-test-db"
+            ]
+          },
+          "init": {
+            "files": {
+              "/etc/hosts": {
+                "content": "127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4\n::1         localhost localhost.localdomain localhost6 localhost6.localdomain6\n"
+              },
+              "/etc/sysconfig/network": {
+                "content": "NETWORKING=yes\nNETWORKING_IPV6=no\nHOSTNAME=userservice-test.GhapTest.io\n"
+              },
+              "/tmp/setup-test-database.sh" : {
+                "content" : { "Fn::Join" :
+                ["\n",
+                  [
+                    "#!/bin/bash",
+                    "",
+                    "/usr/bin/createuser -S -D -R testuser",
+                    "/usr/bin/createdb -O testuser TESTDB",
+                    "psql -U postgres --command \"alter user testuser with password '';\""
+                  ]
+                ]}
+              }
+            },
+            "packages": {
+              "yum": {
+                "curl": [],
+                "postgresql": [],
+                "postgresql-server": []
+              }
+            },
+            "commands": {
+              "postgresql-initdb" : {
+                "command" : {
+                  "Fn::Join" :
+                  [
+                    " ",
+                    [
+                      "service",
+                      "postgresql",
+                      "initdb"
+                    ]
+                  ]
+                },
+                "ignoreErrors" : "false"
+              },
+              "change-ownership-test-db-setup" : {
+                "command" : "chown postgres /tmp/setup-test-database.sh",
+                "ignoreErrors" : "false"
+              },
+              "change-permissions-test-db-setup" : {
+                "command" : "chmod u+x /tmp/setup-test-database.sh",
+                "ignoreErrors" : "false"
+              }
+            },
+            "services": {
+              "sysvinit": {
+                "httpd": {
+                  "enabled": "false",
+                  "ensureRunning": "false"
+                },
+                "ip6tables": {
+                  "enabled": "false",
+                  "ensureRunning": "false"
+                },
+                "iptables": {
+                  "enabled": "false",
+                  "ensureRunning": "false"
+                },
+                "postfix": {
+                  "enabled": "false",
+                  "ensureRunning": "false"
+                }
+              }
+            }
+          },
+          "postgresql-update-conf" : {
+            "commands" : {
+              "update-postgresql-conf" : {
+                "command" : "echo \"listen_addresses='*'\" >> /var/lib/pgsql/data/postgresql.conf"
+              }
+            },
+            "files" : {
+              "/var/lib/pgsql/data/pg_hba.conf" : {
+                "content" : { "Fn::Join" :
+                ["\n",
+                  [
+                    "local   all         all                               trust",
+                    "host    all         all         0.0.0.0/0             md5"
+                  ]
+                ]}
+              }
+            }
+          },
+          "postgresql-enable": {
+            "services": {
+              "sysvinit": {
+                "postgresql": {
+                  "enabled": "true",
+                  "ensureRunning": "true"
+                }
+              }
+            }
+          },
+          "postgresql-create-test-db": {
+            "commands": {
+              "create-test-db" : {
+                "command" : "su - postgres --command=\"/tmp/setup-test-database.sh\"",
+                "ignoreErrors" : "false"
+              }
+            }
+          }
+        }
+      },
+      "CreationPolicy": {
+        "ResourceSignal": {
+          "Timeout": "PT30M"
+        }
+      },
+      "Type": "AWS::EC2::Instance"
+    }
+  },
+  "Outputs" : {
+    "PublicIp" : {
+      "Value" : {"Fn::GetAtt" : ["GhapTestProvisioningServiceInstance", "PublicIp"] },
+      "Description" : "Test Instance Ip for Provisioning Service"
+    }
+  }
+}

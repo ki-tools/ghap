@@ -1,0 +1,5 @@
+{"success":false,"errors":[{"code":-10,"msg":"This repository URL is already taken by 'gran33' in 'project22'"}],"data":null}
+
+success must be false
+
+errors - array of objects. Each object contains numeric "code" and text "msg"

@@ -1,0 +1,331 @@
+{
+  "Description" : "Cloudformation Stack for Setting up Security Groups",
+  "Parameters" : {
+    "GhapVPC": {
+      "ConstraintDescription": "The VPC Id",
+      "Description": "The VPC Id",
+      "Type": "String"
+    },
+    "ServerAccess": {
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "must be a valid CIDR range of the form x.x.x.x/x.",
+      "Default": "0.0.0.0/0",
+      "Description": "CIDR IP range allowed to login to the NAT instance",
+      "MaxLength": "18",
+      "MinLength": "9",
+      "Type": "String"
+    }
+  },
+
+  "Resources" : {
+    "GhapWindowsEnvSecurityGroup": {
+      "Properties": {
+        "GroupDescription": "Shared Curator Environment Security Group",
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": { "Ref": "ServerAccess" },
+            "FromPort": "3389",
+            "IpProtocol": "tcp",
+            "ToPort": "3389"
+          },
+          {
+            "CidrIp": "10.10.0.0/16",
+            "FromPort": "1688",
+            "IpProtocol": "tcp",
+            "ToPort": "1688"
+          },
+          {
+            "CidrIp": "10.10.0.0/16",
+            "FromPort": "53",
+            "IpProtocol": "udp",
+            "ToPort": "53"
+          }
+        ],
+        "VpcId": { "Ref": "GhapVPC" }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "GhapWindowsSambaSecurityGroup": {
+      "Properties": {
+        "GroupDescription": "Windows Samba Communication Security Group",
+        "SecurityGroupIngress": [
+          {
+            "SourceSecurityGroupId": { "Ref": "GhapWindowsEnvSecurityGroup" },
+            "FromPort": "0",
+            "IpProtocol": "-1",
+            "ToPort": "65535"
+          }
+        ],
+        "VpcId": { "Ref": "GhapVPC" }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "GhapNatSecurityGroup" : {
+      "Properties" : {
+        "GroupDescription" : "Enable Internal Access to the NAT Device",
+        "VpcId" : { "Ref" : "GhapVPC" },
+        "SecurityGroupEgress" : [
+          {
+            "CidrIp" : {"Ref" : "ServerAccess"},
+            "FromPort" : "0",
+            "IpProtocol" : "-1",
+            "ToPort" : "65535"
+          }
+        ],
+        "SecurityGroupIngress" : [
+          {
+            "IpProtocol" : "-1",
+            "FromPort" : "0",
+            "ToPort" : "65535",
+            "CidrIp" : {"Ref" : "ServerAccess"}
+          }
+        ]
+      },
+      "Type" : "AWS::EC2::SecurityGroup"
+    },
+    "GhapUserServiceSambaSecurityGroup" : {
+      "Properties": {
+        "GroupDescription": "Windows Samba Communication Security Group",
+        "SecurityGroupIngress": [
+          {
+            "SourceSecurityGroupId": { "Ref": "GhapBeanstalkSecurityGroup" },
+            "FromPort": "389",
+            "IpProtocol": "tcp",
+            "ToPort": "389"
+          }
+        ],
+        "VpcId": { "Ref": "GhapVPC" }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "GhapBeanstalkSecurityGroup": {
+      "Properties": {
+        "GroupDescription": "Allow the Elastic Beanstalk instances to access the NAT device",
+        "VpcId": { "Ref": "GhapVPC" }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "GhapUserServiceDBSecurityGroup": {
+      "Properties": {
+        "DBSecurityGroupIngress": [
+          { "EC2SecurityGroupId": { "Ref": "GhapBeanstalkSecurityGroup" }},
+          { "EC2SecurityGroupId": { "Ref": "GhapBackupSecurityGroup" }}
+        ],
+        "EC2VpcId": { "Ref": "GhapVPC" },
+        "GroupDescription": "Database Access for User Service"
+      },
+      "Type": "AWS::RDS::DBSecurityGroup"
+    },
+    "GhapOAuth2DBSecurityGroup": {
+      "Properties": {
+        "DBSecurityGroupIngress": [
+          { "EC2SecurityGroupId": { "Ref": "GhapBeanstalkSecurityGroup" } },
+          { "EC2SecurityGroupId": { "Ref": "GhapBackupSecurityGroup" }}],
+        "EC2VpcId": { "Ref": "GhapVPC" },
+        "GroupDescription": "Database Access for OAuth Service"
+      },
+      "Type": "AWS::RDS::DBSecurityGroup"
+    },
+    "GhapBackupSecurityGroup": {
+      "Properties": {
+        "GroupDescription": "Backup Security Group",
+        "VpcId": { "Ref": "GhapVPC" },
+        "SecurityGroupIngress" : [
+          {
+            "IpProtocol" : "6",
+            "FromPort" : "22",
+            "ToPort" : "22",
+            "CidrIp" : "10.10.0.0/16"
+          },
+          {
+            "IpProtocol" : "6",
+            "FromPort" : "5432",
+            "ToPort" : "5432",
+            "CidrIp" : "10.10.0.0/16"
+          }
+        ],
+        "SecurityGroupEgress"  : [
+          {
+            "IpProtocol" : "-1",
+            "FromPort" : "0",
+            "ToPort" : "65535",
+            "CidrIp" : "0.0.0.0/0"
+          }
+        ]
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "GhapRShinySecurityGroup": {
+      "Properties": {
+        "GroupDescription": "RShiny Security Group",
+        "VpcId": { "Ref": "GhapVPC" },
+        "SecurityGroupIngress" : [
+          {
+            "IpProtocol" : "6",
+            "FromPort" : "22",
+            "ToPort" : "22",
+            "CidrIp" : "10.10.0.0/16"
+          },
+          {
+            "IpProtocol" : "6",
+            "FromPort" : "80",
+            "ToPort" : "80",
+            "CidrIp" : "10.10.0.0/16"
+          },
+          {
+            "IpProtocol" : "6",
+            "FromPort" : "443",
+            "ToPort" : "443",
+            "CidrIp" : "10.10.0.0/16"
+          },
+          {
+            "IpProtocol" : "6",
+            "FromPort" : "4151",
+            "ToPort" : "4151",
+            "CidrIp" : "10.10.0.0/16"
+          }
+        ],
+        "SecurityGroupEgress"  : [
+          {
+            "IpProtocol" : "-1",
+            "FromPort" : "0",
+            "ToPort" : "65535",
+            "CidrIp" : "0.0.0.0/0"
+          }
+        ]
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "GhapStashSecurityGroup": {
+      "Properties": {
+        "GroupDescription": "Stash Security Group",
+        "VpcId": { "Ref": "GhapVPC" },
+        "SecurityGroupIngress" : [
+          {
+            "IpProtocol" : "6",
+            "FromPort" : "22",
+            "ToPort" : "22",
+            "CidrIp" : "10.10.0.0/16"
+          },
+          {
+            "IpProtocol" : "6",
+            "FromPort" : "80",
+            "ToPort" : "80",
+            "CidrIp" : "10.10.0.0/16"
+          },
+          {
+            "IpProtocol" : "6",
+            "FromPort" : "443",
+            "ToPort" : "443",
+            "CidrIp" : "10.10.0.0/16"
+          }
+        ],
+        "SecurityGroupEgress"  : [
+          {
+            "IpProtocol" : "-1",
+            "FromPort" : "0",
+            "ToPort" : "65535",
+            "CidrIp" : "0.0.0.0/0"
+          }
+        ]
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "GhapStashDBSecurityGroup": {
+      "Properties": {
+        "DBSecurityGroupIngress": [ { "EC2SecurityGroupId": { "Ref": "GhapStashSecurityGroup" }}],
+        "EC2VpcId": { "Ref": "GhapVPC" },
+        "GroupDescription": "Database Access"
+      },
+      "Type": "AWS::RDS::DBSecurityGroup"
+    },
+    "GhapProjectDBSecurityGroup": {
+      "Properties": {
+        "DBSecurityGroupIngress": [
+          { "EC2SecurityGroupId": { "Ref": "GhapBeanstalkSecurityGroup" } },
+          { "EC2SecurityGroupId": { "Ref": "GhapBackupSecurityGroup" }}],
+        "EC2VpcId": { "Ref": "GhapVPC" },
+        "GroupDescription": "Database Access"
+      },
+      "Type": "AWS::RDS::DBSecurityGroup"
+    },
+    "GhapActivityDBSecurityGroup": {
+      "Properties": {
+        "DBSecurityGroupIngress": [
+          { "EC2SecurityGroupId": { "Ref": "GhapBeanstalkSecurityGroup" } },
+          { "EC2SecurityGroupId": { "Ref": "GhapBackupSecurityGroup" }}],
+        "EC2VpcId": { "Ref": "GhapVPC" },
+        "GroupDescription": "Database Access"
+      },
+      "Type": "AWS::RDS::DBSecurityGroup"
+    },
+    "GhapProvisioningDBSecurityGroup": {
+      "Properties": {
+        "DBSecurityGroupIngress": [
+          { "EC2SecurityGroupId": { "Ref": "GhapBeanstalkSecurityGroup" } },
+          { "EC2SecurityGroupId": { "Ref": "GhapBackupSecurityGroup" }}],
+        "EC2VpcId": { "Ref": "GhapVPC" },
+        "GroupDescription": "Database Access"
+      },
+      "Type": "AWS::RDS::DBSecurityGroup"
+    }
+  },
+  "Outputs" : {
+    "GhapWindowsSambaSecurityGroupOutput" : {
+      "Value" : { "Ref" : "GhapWindowsSambaSecurityGroup" },
+      "Description" : "Ghap Samba Security Group Id"
+    },
+    "GhapWindowsEnvSecurityGroupOutput" : {
+      "Value" : { "Ref" : "GhapWindowsEnvSecurityGroup" },
+      "Description" : "Ghap Windows Environment Security Group Id"
+    },
+    "GhapNatSecurityGroupOutput" : {
+      "Value" : { "Ref" : "GhapNatSecurityGroup" },
+      "Description" : "Ghap Nat Security Group Id"
+    },
+    "GhapUserServiceDBSecurityGroupOutput" : {
+      "Value": {"Ref": "GhapUserServiceDBSecurityGroup"},
+      "Description": "Ghap UserServiceDB Security Group Id"
+    },
+    "GhapBeanstalkSecurityGroupOutput" : {
+      "Value" : {"Ref" : "GhapBeanstalkSecurityGroup" },
+      "Description" : "Ghap Beanstalk Security Group Id"
+    },
+    "GhapUserServiceSambaSecurityGroupOutput" : {
+      "Value" : {"Ref" : "GhapUserServiceSambaSecurityGroup"},
+      "Description" : "Ghap User Service Samba Access Security Group"
+    },
+    "GhapOAuth2DBSecurityGroupOutput" : {
+      "Value" : {"Ref" : "GhapOAuth2DBSecurityGroup"},
+      "Description" : "Ghap OAuth Database Access Security Group"
+    },
+    "GhapStashSecurityGroupOutput" : {
+      "Value" : {"Ref" : "GhapStashSecurityGroup"},
+      "Description" : "Ghap Stash Access Security Group"
+    },
+    "GhapRShinySecurityGroupOutput" : {
+      "Value" : {"Ref" : "GhapRShinySecurityGroup"},
+      "Description" : "Ghap RShiny Access Security Group"
+    },
+    "GhapBackupSecurityGroupOutput" : {
+      "Value" : {"Ref" : "GhapBackupSecurityGroup"},
+      "Description" : "Ghap Backup Access Security Group"
+    },
+    "GhapStashDBSecurityGroupOutput" : {
+      "Value" : {"Ref" : "GhapStashDBSecurityGroup"},
+      "Description" : "Ghap StashDB Access Security Group"
+    },
+    "GhapProjectDBSecurityGroupOutput" : {
+      "Value" : {"Ref" : "GhapProjectDBSecurityGroup"},
+      "Description" : "Ghap Project Service Database Security Group"
+    },
+    "GhapActivityDBSecurityGroupOutput" : {
+      "Value" : {"Ref" : "GhapActivityDBSecurityGroup"},
+      "Description" : "Ghap Activity Service Database Security Group"
+    },
+    "GhapProvisioningDBSecurityGroupOutput" : {
+      "Value" : {"Ref" : "GhapProvisioningDBSecurityGroup"},
+      "Description" : "Ghap Activity Service Database Security Group"
+    }
+  }
+}

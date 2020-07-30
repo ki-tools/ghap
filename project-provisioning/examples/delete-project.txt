@@ -1,0 +1,7 @@
+curl -i -H "Content-Type: application/json" -X DELETE http://192.168.1.33:8080/project/0accb4aa-0ae8-4b78-b45c-0138b2e008d8
+
+path param - projectid, required
+
+response example
+
+{"success":true,"errors":null,"data":null}

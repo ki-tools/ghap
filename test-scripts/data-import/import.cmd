@@ -1,0 +1,1 @@
+node ../frisby-tests/spec/utils/ghap-import-prj %1 %2 %3

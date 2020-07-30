@@ -1,0 +1,2 @@
+address: http://localhost:8080/user/cn=xxx1%20xxx2,cn=users,dc=ad,dc=loc
+method: DELETE

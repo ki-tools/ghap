@@ -1,0 +1,73 @@
+{
+  "Description" : "Cloudformation Stack for SQS Setup for Processing Bounced/Complaint Emails for SES",
+  "Resources" : {
+    "GhapBounceSESQueue" : {
+      "Properties" : {
+        "QueueName" : "ses-bounces-queue"
+      },
+      "Type" : "AWS::SQS::Queue"
+    },
+    "GhapBounceSNSTopic" : {
+      "Properties" : {
+        "Subscription": [{
+          "Endpoint": { "Fn::GetAtt": ["GhapBounceSESQueue", "Arn"] },
+          "Protocol": "sqs"
+        }]
+      },
+      "Type" : "AWS::SNS::Topic"
+    },
+    "GhapComplaintSESQueue" : {
+      "Properties" : {
+        "QueueName" : "ses-complaints-queue"
+      },
+      "Type" : "AWS::SQS::Queue"
+    },
+    "GhapComplaintSNSTopic" : {
+      "Properties" : {
+        "Subscription": [{
+          "Endpoint": { "Fn::GetAtt": ["GhapComplaintSESQueue", "Arn"] },
+          "Protocol": "sqs"
+        }]
+      },
+      "Type" : "AWS::SNS::Topic"
+    },
+    "GhapComplaintQueuePolicy" : {
+      "Properties" : {
+        "PolicyDocument" : {
+          "Id" : "GhapComplaintQueuePolicy",
+          "Version" : "2012-10-17",
+          "Statement" : [ {
+            "Sid" : "Allow-SNS-SendMessage",
+            "Effect" : "Allow",
+            "Principal" : { "AWS": "*" },
+            "Action" : [ "sqs:SendMessage" ],
+            "Resource" : { "Ref" : "GhapComplaintSNSTopic" }
+          } ]
+        },
+        "Queues" : [
+          { "Ref" : "GhapComplaintSESQueue" }
+        ]
+      },
+      "Type" : "AWS::SQS::QueuePolicy"
+    },
+    "GhapBounceQueuePolicy" : {
+      "Properties" : {
+        "PolicyDocument" : {
+          "Id" : "GhapBounceQueuePolicy",
+          "Version" : "2012-10-17",
+          "Statement" : [ {
+            "Sid" : "Allow-SNS-SendMessage",
+            "Effect" : "Allow",
+            "Principal" : { "AWS": "*" },
+            "Action" : [ "sqs:SendMessage" ],
+            "Resource" : { "Ref" : "GhapBounceSNSTopic" }
+          } ]
+        },
+        "Queues" : [
+          { "Ref" : "GhapBounceSESQueue" }
+        ]
+      },
+      "Type" : "AWS::SQS::QueuePolicy"
+    }
+  }
+}

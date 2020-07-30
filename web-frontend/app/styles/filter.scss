@@ -1,0 +1,49 @@
+.no-top-margin .filter
+{
+  margin-top: 0;
+}
+
+.tree-filter {
+  margin-bottom: 10px;
+  border: 1px solid #e2e1dd;
+  outline: none;
+  height: 30px;
+  font-size: 1.4rem;
+  padding: 0px 9px;
+  width: 100%;
+}
+
+.filter
+{
+  background-color: white;
+  border: 1px solid #e2e1dd;
+  margin: 10px 0;
+  &.add-rigth-margin {
+    margin-right: 5px;
+  }
+
+  .input-cont
+  {
+    width: calc(100% - 26px);
+
+    &.full-width {
+      width: 100%;
+    }
+
+    .text-input
+    {
+      border:    none;
+      outline:   none;
+      height:    30px;
+      font-size: 1.4rem;
+      padding: 0px 9px;
+    }
+  }
+
+  img
+  {
+    cursor: pointer;
+    vertical-align: middle;
+  }
+
+}

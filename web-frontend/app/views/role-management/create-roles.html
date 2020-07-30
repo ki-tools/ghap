@@ -1,0 +1,52 @@
+<div class="content-wrapper clear">
+  <form ng-submit="add()">
+    <div class="content-row page-header">
+      <div class="content">
+        <h1>Create Roles <div ng-show="errors.length > 0" class="error-message-cont"><ul>
+          <li ng-repeat="error in errors">{{error}}</li>
+        </ul></div><div ng-show="success" class="success-message-cont">{{success}}</div></h1>
+      </div>
+    </div>
+    <div class="content-row separator-header">
+      <div class="content">
+        <div class="grid gutter">
+          <div class="grid-col col-4-12">
+            <h4>Add Roles</h4>
+          </div>
+          <div class="grid-col col-8-12">
+            <h4>Roles</h4>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="content-row white separator-left full-separate-left">
+      <div class="content">
+        <div class="grid gutter">
+          <div class="grid-col col-4-12">
+            <div class="input-cont">
+              <label>Role Title</label>
+              <input type="text" class="text-input" ng-model="role.name" />
+            </div>
+            <div class="grid">
+              <div class="grid-col col-1-2"></div>
+              <div class="grid-col col-1-2">
+                <div class="input-cont no-margin">
+                  <input type="submit" class="submit-button" value="ADD" />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="grid-col col-8-12 separator-padded-left padded-vertical">
+            <div class="list-cont">
+              <ul class="list">
+                <li class="list__item" ng-repeat="role in roles">
+                  <div class="list__item__text">{{role.name}}</div>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

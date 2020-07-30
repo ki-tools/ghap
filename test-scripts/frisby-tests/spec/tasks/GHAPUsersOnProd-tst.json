@@ -1,0 +1,8 @@
+[
+{"RSVPstatus":"YES","LastName":"Agnone","FirstName":"Jon","EmailAddress":"jon.agnone@gatesfoundation.org","SurgeTeam":"N/A","Count":1,"GHAPRole":"Data Analyst","GHAPUsernameDerived":"jon.agnone","GHAPUsernameCleansed":"jon.agnone","TrelliscopeURL-ID":1},
+{"RSVPstatus":"YES","LastName":"Anderson","FirstName":"Craig","EmailAddress":"craig.anderson@uts.edu.au","SurgeTeam":"Auxology & Growth Modeling Methodology","Count":1,"GHAPRole":"Data Analyst","GHAPUsernameDerived":"craig.anderson","GHAPUsernameCleansed":"craig.anderson","TrelliscopeURL-ID":2},
+{"RSVPstatus":"YES","LastName":"Arsenault","FirstName":"Joanne","EmailAddress":"jearsenault@ucdavis.edu","SurgeTeam":"Quantitative Physiologic Modeling (qPM)","Count":1,"GHAPRole":"Data Analyst,GHAP Administrator","GHAPUsernameDerived":"joanne.arsenault","GHAPUsernameCleansed":"joanne.arsenault","TrelliscopeURL-ID":3},
+{"RSVPstatus":"YES","LastName":"Bassani","FirstName":"Diego","EmailAddress":"diego.bassani@sickkids.ca","SurgeTeam":"Auxology & Growth Modeling Methodology","Count":1,"GHAPRole":"Data Analyst, Data Curator","GHAPUsernameDerived":"diego.bassani","GHAPUsernameCleansed":"diego.bassani","TrelliscopeURL-ID":4},
+{"RSVPstatus":"YES","LastName":"Gopalan","FirstName":"Ram","EmailAddress":"rgopalan@anlinsight.com","SurgeTeam":"Data Management & Visualization","Count":1,"GHAPRole":"Data Curator","GHAPUsernameDerived":"ram.gopalan","GHAPUsernameCleansed":"ram.gopalan","TrelliscopeURL-ID":5},
+{"RSVPstatus":"YES","LastName":"Gowins","FirstName":"Aaron","EmailAddress":"aaron.gowins@nih.gov","SurgeTeam":"Quantitative Physiologic Modeling (qPM)","Count":1,"GHAPRole":"Data Analyst","GHAPUsernameDerived":"aaron.gowins","GHAPUsernameCleansed":"aaron.gowins","TrelliscopeURL-ID":6}
+]

@@ -1,0 +1,33 @@
+<!-- <div class="popup-cont"
+     ng-class="{active: isFilterVisible}">
+  <div class="popup-image"><img title="Search for {{placeholder}}"
+                                src="/images/ic-filter.png"
+                                ng-click="toggleFilter()"></div>
+  <div class="popup-image popup-image--active"><img title="Search for {{placeholder}}"
+                                                    src="/images/ic-filter-active.png"
+                                                    ng-click="toggleFilter()"></div>
+  <div class="popup">
+    <div class="input-cont no-margin inline">
+      <input type="text"
+             class="text-input"
+             placeholder="{{placeholder}}"
+             ng-keypress="onKeyPress($event)"
+             ng-model="field"/>
+    </div>
+    <img src="/images/ic-submit.png"
+         width="25px"
+         height="25px"
+         ng-click="toggleFilter()" />
+  </div>
+</div> -->
+<div class="filter">
+  <div class="input-cont no-margin inline">
+    <input type="text"
+           class="text-input"
+           placeholder="{{placeholder}}"
+           ng-model="field"/>
+  </div>
+  <img src="/images/search-clear.png"
+       ng-click="clearFilter()"
+       ng-show="field" />
+</div>

@@ -1,0 +1,72 @@
+<div class="content-wrapper clear">
+  <form ng-submit="saveUsers()">
+    <div class="content-row page-header">
+      <div class="content">
+        <h1>Edit Group</h1>
+      </div>
+    </div>
+    <div class="content-row separator-header">
+      <div class="content">
+        <div class="grid gutter">
+          <div class="grid-col col-4-12">
+            <h4>Group Account</h4>
+          </div>
+          <div class="grid-col col-8-12">
+            <h4>Assign/Unassign Users</h4>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="content-row white padded separator-left">
+      <div class="content">
+        <div class="grid gutter">
+          <div class="grid-col col-4-12 separator-padded-right">
+            <div class="list-cont">
+              <div class="list-cont__header">Groups</div>
+              <filter field="groupFilter.name" placeholder="Search by group name"></filter>
+              <ul class="list selectable">
+                <li class="list__item" ng-class="{active: group.dn == currentGroup.dn}" ng-repeat="group in groups | filter:groupFilter" ng-click="getUsers(group)">
+                  <span class="list__item__text">{{group.name}}</span>
+                </li>
+              </ul>
+              <!-- <bgf-pagination collection="groups"
+                              url="USERS_URL"
+                              per-page="20"
+                              auto-presets="false"
+                              template-url="views/directives/paginate-anything.html"></bgf-pagination> -->
+            </div>
+          </div>
+          <div class="grid-col col-8-12 separator-padded-left">
+            <div class="check-list-cont">
+              <div class="check-list-cont__header">Users</div>
+              <filter field="userFilter.name" placeholder="Search by user name"></filter>
+              <ul class="check-list">
+                <li class="check-list__item" ng-repeat="user in users | filter:userFilter">
+                  <label class="check-list__item__label">
+                    <input type="checkbox" class="check-list__item__input" ng-checked="user.selected" ng-click="user.selected = !user.selected"/>
+                    <div class="check-list__item__text">{{user.name}}</div>
+                  </label>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="content-row padded">
+      <div class="content">
+        <div class="grid gutter">
+          <div class="grid-col col-4-12"></div>
+          <div class="grid-col col-8-12">
+            <input type="submit" class="submit-button" value="SAVE" />
+            <div class="right-side-message">
+              <div ng-show="errors.length > 0" class="error-message-cont"><ul>
+                <li ng-repeat="error in errors">{{error}}</li>
+              </ul></div><div ng-show="success" class="success-message-cont" ng-bind-html="success"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

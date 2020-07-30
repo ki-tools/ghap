@@ -1,0 +1,165 @@
+<div class="content-wrapper clear">
+  <div class="content-row page-header">
+    <div class="content">
+      <div class="grid gutter">
+        <div class="grid-col col-12-12">
+          <h1>Computing Environment</h1>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="content-row">
+    <div class="content">
+      <div class="grid gutter">
+        <div class="grid-col col-8-12">
+          <table class="top-right-table no-select">
+            <thead>
+              <tr>
+                <th colspan="6">
+                  <div class="button-cont"
+                       ng-hide="activities.length === 0">
+                    <div class="create-virt-env-toggle submit-button sm-button"
+                         ng-click="showVirtEnvDialog = !showVirtEnvDialog">
+                      <span>Create virtual environment</span>
+                    </div>
+                    <div ng-show="showVirtEnvDialog"
+                         class="virt-env-dialog">
+                      <label ng-repeat="activity in activities | orderBy:'activityName'">
+                        <input type="checkbox"
+                               ng-value="activity"
+                               ng-model="modelActivities[activity.id]" />&nbsp;{{activity.activityName}}
+                      </label>
+                      <button class="submit-button submit-button--no-padding"
+                              ng-click="create()">CREATE</button>
+                      <button class="default-button submit-button--no-padding"
+                              ng-click="showVirtEnvDialog = false">CANCEL</button>
+                    </div>
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody> 
+              <tr>
+                <th></th>
+                <th>Type</th>
+                <th>Node</th>
+                <th>IP</th>
+                <th class="align-center">CPU</th>
+                <th width="100px"></th>
+              </tr>
+              <tr ng-repeat="stack in stacks.concat(pendingStacks)">
+                <td ng-click="terminate(stack.activityId)"
+                    class="table-col-remove"
+                    title="Decomission Virtual Environment"></td>
+                <td title="{{stack.resources.main.imageId}}">
+                  <span ng-bind='stack.resources.main.instanceOsType'></span>
+                  <span ng-if="isVPG(stack)"> VPG</span>
+                </td>
+                <td ng-bind='stack.resources.main.instanceId'></td>
+                <td>
+                  <a ng-show="rdps[stack.resources.main.instanceId]"
+                     class="underlined color-quaternary"
+                     ng-href="{{rdps[stack.resources.main.instanceId]}}">{{stack.resources.main.address}}</a>
+                  <span ng-hide="rdps[stack.resources.main.instanceId]">{{stack.resources.main.address}}</span>
+                </td>
+                <td class="align-center"
+                    ng-bind='stack.resources.main.coreCount'></td>
+                <td class="table-col-pause stack-status">
+                  <div class="ios-toggle"
+                       ng-class="{on: isOn(stack.resources.main), disabled: isDisabled(stack.resources.main)}"
+                       ng-click="toggleStack(stack.activityId, stack.resources.main)">
+                    <div class="toggle"></div>
+                  </div>&nbsp;&nbsp;<spam ng-class="{muted: !isOn(stack.resources.main) || isDisabled(stack.resources.main)}">{{stack.resources.main.status}}</spam>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="grid-col col-4-12 instructions">
+          <h3>Access Instructions</h3>
+          <h4 ng-click="lefw = !lefw">Launching a Linux Environment from<br/>Windows&nbsp;<img ng-src="{{lefw ? '/images/ic-arrow-down.png' : '/images/ic-arrow-right.png'}}"></h4>
+          <ol ng-show="lefw">
+            <li>Download Putty</li>
+            <li>Start Putty from Windows Start Menu</li>
+            <li>Copy IP address and paste to Host name field in Putty Config dialog</li>
+            <li>Select Open</li>
+            <li>
+              Username: <b><i>username</i></b><br/>
+              Password: <b><i>password</i></b>
+            </li>
+          </ol>
+
+          <h4 ng-click="lefl = !lefl">Launching a Linux Environment from Linux Command Line&nbsp;<img ng-src="{{ lefl ? '/images/ic-arrow-down.png' : '/images/ic-arrow-right.png' }}"></h4>
+          <ol ng-show="lefl">
+            <li><b><i>ssh username@ip_address</i></b></li>
+            <li>Password: <b><i>password</i></b></li>
+          </ol>
+
+          <h4 ng-click="leflg = !leflg">Launching a Linux GUI Environment&nbsp;<img ng-src="{{ leflg ? '/images/ic-arrow-down.png' : '/images/ic-arrow-right.png' }}"></h4>
+          <ul ng-show="leflg">
+            <li>
+              <h4 ng-click="leflg_win = !leflg_win">
+                From Windows
+                <img ng-src="{{ leflg_win ? '/images/ic-arrow-down.png' : '/images/ic-arrow-right.png' }}">
+              </h4>
+
+              <ol ng-show="leflg_win">
+                <li><a href="https://s3-us-west-2.amazonaws.com/ghap-software/nxclient-3.5.0-9.exe">Download and Install NxMachine</a></li>
+                <li>Start the NX Client for Windows > <b>Next</b> > <b>Cancel</b></li>
+                <li>Download and save <a href="https://s3-us-west-2.amazonaws.com/ghap-software/GHAP.nxs">GHAP.nxs</a> and <a href="https://s3-us-west-2.amazonaws.com/ghap-software/nxclient.cfg">nxclient.cfg</a> to <i>C:\Users\username\.nx\config</i></li>
+                <li>Start the NX Client for Windows > <b>Configure</b></li>
+                <li>Replace IPADDRESS with your <i>GHAP instance IP address</i></li>
+                <li>For Desktop you can keep the default of <b>GNOME</b> or select <b>KDE</b></li>
+                <li>Click Save > OK > <i>GHAP Username and Password</i> > <b>Login</b></li>
+                <li>Accept the SSH Key > <b>Yes</b></li>
+              </ol>
+            </li>
+            <li>
+              <h4 ng-click="leflg_lin = !leflg_lin">
+                From Linux
+                <img ng-src="{{ leflg_lin ? '/images/ic-arrow-down.png' : '/images/ic-arrow-right.png' }}">
+              </h4>
+
+              <ol ng-show="leflg_lin">
+                <li><a href="https://www.nomachine.com/download/linux&id=1">Download and Install NoMachine Client for Linux</a></li>
+                <li>Start the NX Connection Wizard > <b>Next</b> ></li>
+                <li>Enter name for session and paste in the <i>GHAP Instance IP address</i> to the Host field.</li>
+                <li><b>Next</b> > <b>Finish</b> > <i>GHAP Username and Password</i> > <b>Login</b></li>
+                <li>The instructions for launching “From Mac” can be used for some versions of Linux.</li>
+              </ol>
+            </li>
+            <li>
+              <h4 ng-click="leflg_mac = !leflg_mac">
+                From Mac
+                <img ng-src="{{ leflg_mac ? '/images/ic-arrow-down.png' : '/images/ic-arrow-right.png' }}">
+              </h4>
+
+              <ol ng-show="leflg_mac">
+                <li><a href="https://www.nomachine.com/download/download&id=13">Download and Install NxMachine</a></li>
+                <li><b>New</b>-><b>Protocol</b>-><b>SSH->SET HOSTNAME/IP</b>->Use the NoMachine Login->Continue Past the Authentication Prompt->Don’t Use a Proxy-><b>Done</b>->Double Click on the Connection in No Machine</li>
+              </ol>
+            </li>
+          </ul>
+
+
+          <h4 ng-click="we = !we">Launching a Windows Environment&nbsp;<img ng-src="{{ we ? '/images/ic-arrow-down.png' : '/images/ic-arrow-right.png' }}"></h4>
+          <ol ng-show="we">
+            <li>Select the IP Address link on this page</li>
+            <li>RDP file will be downloaded to your Downloads folder</li>
+            <li>Double click on the RDP file. An RDP session will be launched</li>
+            <li>
+              Username: <b><i>username</i></b><br/>
+              Password: <b><i>password</i></b>
+            </li>
+          </ol>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <workspace user='user'></workspace>
+
+</div>

@@ -1,0 +1,7 @@
+address: http://localhost:8080/user/cn=Andrew%20Krasnoff,cn=users,dc=ad,dc=loc
+method: POST
+response type: application/json
+
+request: {
+         "email":  "mmm@mmm.ru"
+       }

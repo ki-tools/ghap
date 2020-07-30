@@ -1,0 +1,17 @@
+{
+  "jasmine": true,
+  "mocha": true,
+  "globals": {
+    "angular": false,
+    "browser": false,
+    "inject": false,
+    "_": false,
+    "driver": false,
+    "protractor": false,
+    "$": false,
+    "$$": false,
+    "element": false,
+    "by": false,
+    "list": false
+  }
+}

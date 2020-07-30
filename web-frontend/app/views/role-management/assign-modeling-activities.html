@@ -1,0 +1,72 @@
+<div class="content-wrapper clear">
+  <form method="POST" ng-submit="save()">
+    <div class="content-row page-header">
+      <div class="content">
+        <h1>Assign Modeling Activities</h1>
+      </div>
+    </div>
+    <div class="content-row separator-header">
+      <div class="content">
+        <div class="grid gutter">
+          <div class="grid-col col-4-12">
+            <h4>Select User Role</h4>
+          </div>
+          <div class="grid-col col-8-12">
+            <h4></h4>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="content-row white padded separator-left">
+      <div class="content">
+        <div class="grid gutter">
+          <div class="grid-col col-4-12 separator-padded-right">
+            <div class="list-cont">
+              <div class="list-cont__header">Roles</div>
+              <filter field="roleFilter.name" placeholder="Search by role name"></filter>
+              <ul class="list selectable">
+                <li class="list__item" ng-class="{active: selectedRole.name == role.name}" ng-repeat="role in roles | filter:roleFilter" ng-click="getActivities(role)" >
+                  <span class="list__item__text">{{role.name}}</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div class="grid-col col-8-12 separator-padded-left">
+            <div class="check-list-cont">
+              <div class="check-list-cont__header">Modeling Activities</div>
+              <filter field="activityFilter.activityName" placeholder="Search by activity name"></filter>
+              <ul class="check-list">
+                <li class="check-list__item" ng-repeat="activity in activities | filter:activityFilter">
+                  <label class="check-list__item__label">
+                    <input ng-hide="selectedRole == null" type="checkbox" class="check-list__item__input" ng-model="roleActivities[activity.id].checked" />
+                    <div class="check-list__item__text">{{activity.activityName}}</div>
+                  </label>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="content-row padded">
+      <div class="content">
+        <div class="grid gutter">
+          <div class="grid-col col-4-12"></div>
+          <div class="grid-col col-8-12">
+            <div class="grid gutter">
+              <div class="grid-col col-3-12">
+                <input type="submit" class="submit-button" value="SAVE" ng-disabled="selectedRole == null" />
+              </div>
+              <div class="grid-col col-9-12 right-side-message">
+                <div ng-show="errors.length > 0" class="error-message-cont"><ul>
+                  <li ng-repeat="error in errors">{{error}}</li>
+                </ul></div>
+                <div ng-show="success" class="success-message-cont" ng-bind-html="success"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

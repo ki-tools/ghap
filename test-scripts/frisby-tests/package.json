@@ -1,0 +1,25 @@
+{
+  "name": "frisby-tests",
+  "version": "0.1.0",
+  "description": "Frisby tests for GHAP REST services",
+  "author": "Vlad Ruzov",
+  "dependencies": {
+    "aws-sdk": "^2.2.19",
+    "elasticsearch": "^12.0.0-rc2",
+    "form-data": "^0.2.0",
+    "frisby": "^0.8.5",
+    "http-aws-es": "^1.1",
+    "jasmine-json": "0.0.3",
+    "jsonschema": "^1.1.0",
+    "node-rdpjs": "^0.2.1",
+    "q": "^1.4.1",
+    "simple-ssh": "^0.8.6",
+    "ssh2": "^0.3.6"
+  },
+  "devDependencies": {
+    "mocha": "^2.3.3"
+  },
+  "scripts": {
+    "preinstall": "npm install ./spec/utils --prefix ./spec/utils"
+  }
+}

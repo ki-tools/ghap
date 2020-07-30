@@ -1,0 +1,254 @@
+{
+  "Description": "Cloudformation Stack for Analysts Windows Instance",
+  "Mappings": {
+    "AvailabilityZone": {
+      "A": {
+        "ZONEID": "us-east-1a"
+      },
+      "B": {
+        "ZONEID": "us-east-1c"
+      }
+    }
+  },
+  "Parameters": {
+    "Domain": {
+      "AllowedValues": [
+        "ghap.io",
+        "dev.ghap.io",
+        "qa.ghap.io"
+      ],
+      "ConstraintDescription": "Must specify ghap.io or dev.ghap.io.",
+      "Default": "dev.ghap.io",
+      "Description": "The domain or subdomain to be used.",
+      "Type": "String"
+    },
+    "GhapNatSecurityGroup": {
+      "Description": "Security Id for Nat Security Group",
+      "Type": "String"
+    },
+    "GhapPrivateSubnetA": {
+      "Description": "Private Subnet Id for Availability Zone",
+      "Type": "String"
+    },
+    "GhapPrivateSubnetB": {
+      "Description": "Private Subnet Id for Availability Zone",
+      "Type": "String"
+    },
+    "GhapPublicSubnetA": {
+      "Description": "Public Subnet Id for Availability Zone",
+      "Type": "String"
+    },
+    "GhapPublicSubnetB": {
+      "Description": "Public Subnet Id for Availability Zone",
+      "Type": "String"
+    },
+    "GhapVPC": {
+      "ConstraintDescription": "The VPC Id",
+      "Description": "The VPC Id",
+      "Type": "String"
+    },
+    "KeyName": {
+      "ConstraintDescription": "Must be the name of an existing EC2 KeyPair.",
+      "Description": "EC2 Key Pair to allow SSH access to the instance",
+      "Type": "AWS::EC2::KeyPair::KeyName"
+    },
+    "ServerAccess": {
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "must be a valid CIDR range of the form x.x.x.x/x.",
+      "Default": "0.0.0.0/0",
+      "Description": "CIDR IP range allowed to login to the NAT instance",
+      "MaxLength": "18",
+      "MinLength": "9",
+      "Type": "String"
+    },
+    "UniqueId": {
+      "Description": "UUID from Stash for the User",
+      "Type": "String"
+    },
+    "Username": {
+      "Description": "The Username of the User",
+      "Type": "String",
+      "Default" : "Unknown"
+    },
+    "UserVolumeId": {
+      "Default": "UNSET",
+      "Description": "The Volume Id to attach to the instance",
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "AnalystWindows": {
+      "Metadata": {
+        "AWS::CloudFormation::Init": {
+          "config": {
+            "commands": {
+              "01-AddToDomain": {
+                "command": "netdom add /d:prod.ghap.io %COMPUTERNAME% /ud:prod\\administrator /pd:",
+                "waitAfterCompletion": "0"
+              },
+              "02-JoinDomain": {
+                "command": "netdom join /d:prod.ghap.io %COMPUTERNAME% /ud:prod\\administrator /pd:",
+                "waitAfterCompletion": "0"
+              }
+            },
+            "files": {
+              "c:\\cfn\\cfn-hup.conf": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "[main]\n",
+                      "stack=",
+                      {
+                        "Ref": "AWS::StackId"
+                      },
+                      "\n",
+                      "region=",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      "\n"
+                    ]
+                  ]
+                }
+              },
+              "c:\\cfn\\hooks.d\\cfn-auto-reloader.conf": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "[cfn-auto-reloader-hook]\n",
+                      "triggers=post.update\n",
+                      "path=Resources.MyInstance.Metadata.AWS::CloudFormation::Init\n",
+                      "action=cfn-init.exe -v -s ",
+                      {
+                        "Ref": "AWS::StackId"
+                      },
+                      " -r MyInstance",
+                      " --region ",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      "\n"
+                    ]
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "Properties": {
+        "AvailabilityZone": {
+          "Fn::FindInMap": [
+            "AvailabilityZone",
+            "A",
+            "ZONEID"
+          ]
+        },
+        "ImageId": "ami-fba84590",
+        "InstanceType": "c3.2xlarge",
+        "KeyName": {
+          "Ref": "KeyName"
+        },
+        "NetworkInterfaces": [
+          {
+            "AssociatePublicIpAddress": "true",
+            "DeleteOnTermination": true,
+            "DeviceIndex": "0",
+            "GroupSet": [
+              {
+                "Ref": "ComputeSecurityGroup"
+              }
+            ],
+            "SubnetId": {
+              "Ref": "GhapPublicSubnetA"
+            }
+          }
+        ],
+        "SourceDestCheck": false,
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "<powershell>\n",
+                "$EC2SettingsFile=\"C:\\Program Files\\Amazon\\Ec2ConfigService\\Settings\\Config.xml\"\n",
+                "$xml = [xml](get-content $EC2SettingsFile)\n",
+                "$xmlElement = $xml.get_DocumentElement()\n",
+                "$xmlElementToModify = $xmlElement.Plugins\n",
+                "foreach ($element in $xmlElementToModify.Plugin)\n",
+                "{\n",
+                "    if ($element.name -eq \"Ec2SetPassword\")\n",
+                "    {\n",
+                "        $element.State=\"Enabled\"\n",
+                "    }\n",
+                "    elseif ($element.name -eq \"Ec2HandleUserData\")\n",
+                "    {\n",
+                "        $element.State=\"Enabled\"\n",
+                "   }\n",
+                "}\n",
+                "$xml.Save($EC2SettingsFile)\n",
+                "</powershell>\n",
+                "<script>\n",
+                "cfn-init.exe -v -s ",
+                {
+                  "Ref": "AWS::StackId"
+                },
+                " -r AnalystWindows",
+                " --region ",
+                {
+                  "Ref": "AWS::Region"
+                },
+                "\n",
+                "NET LOCALGROUP \"Remote Desktop Users\" prod\\erin.guinan /ADD \n",
+                "NET LOCALGROUP \"Remote Desktop Users\" prod\\tester.admin /ADD \n",
+                "NET LOCALGROUP \"Remote Desktop Users\" prod\\karen.dubrucq /ADD \n",
+                "NET LOCALGROUP \"Remote Desktop Users\" prod\\tom.jones /ADD \n",
+                "NET LOCALGROUP \"Remote Desktop Users\" prod\\sergey.feldman /ADD \n",
+                "NET LOCALGROUP \"Remote Desktop Users\" prod\\amrit.singh /ADD \n",
+                "NET LOCALGROUP \"Remote Desktop Users\" prod\\ryan.hafen /ADD \n",
+                "NET LOCALGROUP \"Remote Desktop Users\" prod\\jonathan.french /ADD \n",
+                "NET LOCALGROUP \"Remote Desktop Users\" prod\\matt.huttmacher /ADD \n",
+                "NET LOCALGROUP \"Remote Desktop Users\" prod\\andrei.modoran /ADD \n",
+                "NET LOCALGROUP \"Remote Desktop Users\" prod\\samer.mouksassi /ADD \n",
+                "NET LOCALGROUP \"Remote Desktop Users\" prod\\amy.racine /ADD \n",
+                "NET LOCALGROUP \"Remote Desktop Users\" prod\\louise.ryan /ADD \n",
+                "NET LOCALGROUP \"Remote Desktop Users\" prod\\vishak.subramoney /ADD \n",
+                "NET LOCALGROUP \"Remote Desktop Users\" prod\\darren.vengroff /ADD \n",
+                "NET LOCALGROUP \"Remote Desktop Users\" prod\\stephan.nagy /ADD \n",
+                "</script>"
+              ]
+            ]
+          }
+        }
+      },
+      "Type": "AWS::EC2::Instance"
+    },
+    "ComputeSecurityGroup": {
+      "Properties": {
+        "GroupDescription": "Analyst Windows Security Group",
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": {
+              "Ref": "ServerAccess"
+            },
+            "FromPort": "3389",
+            "IpProtocol": "tcp",
+            "ToPort": "3389"
+          },
+          {
+            "CidrIp": "10.10.0.0/16",
+            "FromPort": "53",
+            "IpProtocol": "udp",
+            "ToPort": "53"
+          }
+        ],
+        "VpcId": {
+          "Ref": "GhapVPC"
+        }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    }
+  }
+}

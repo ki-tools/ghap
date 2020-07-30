@@ -1,0 +1,35 @@
+$gutter: 20px;
+$outer-gutter: 20px;
+
+$color-primary: #392d1c;
+$color-secondary: #aaa092;
+$color-tertiary: #e2e1dd;
+$color-quaternary: #3086ab;
+$color-quinary: #FFFFFF;
+$color-primary-active: darken($color-primary, 20%);
+$color-secondary-active: darken($color-secondary, 20%);
+$color-tertiary-active: darken($color-tertiary, 20%);
+$color-quaternary-active: darken($color-tertiary, 20%);
+$button-color: #3086ab;
+$button-color-active: darken($button-color, 10%);
+$color-error: #9c232d;
+$color-success: #239C2D;
+
+$font-family-serif: serif;
+$font-family-sans: "DIN", Helvetica, sans-serif;
+$font-size-smallest: 1rem;
+$font-size-smaller: 1.2rem;
+$font-size-small: 1.4rem;
+$font-size-normal: 1.6rem;
+$font-size-big: 1.8rem;
+$font-size-bigger: 2.0rem;
+$font-size-biggest: 3.0rem;
+
+$phone-small: 480px;
+$phone: 640px;
+$tablet: 800px;
+$tablet-landscape: 1024px;
+$desktop: 1200px;
+
+$normal-width: 1060px;
+$full-width: 1440px;

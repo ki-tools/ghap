@@ -1,0 +1,142 @@
+{
+  "Description" : "Cloudformation Stack for the S3 Buckets that make up the GHAP Platform",
+  "Parameters": {
+    "DeploymentTarget": {
+      "AllowedValues" : ["prod", "qa", "devtest", "samba"],
+      "ConstraintDescription" : "Must specify prod,qa,samba,devtest.",
+      "Description": "DeploymentTarget values these are either prod,qa,devtest,samba",
+      "Type": "String"
+    }
+  },
+  "Conditions" : {
+    "CreateDevTestResources" : {"Fn::Equals" : [{"Ref" : "DeploymentTarget"}, "dev"]}
+  },
+  "Resources" : {
+    "Submission": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "AccessControl": "Private",
+        "BucketName": { "Fn::Join" : ["-", ["datasubmissions", {"Ref" : "AWS::Region" }, {"Ref" : "DeploymentTarget"} ]] }
+      },
+      "Type": "AWS::S3::Bucket"
+    },
+    "Configuration" : {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "AccessControl": "Private",
+        "BucketName": { "Fn::Join" : ["-", ["ghap-configuration", {"Ref" : "AWS::Region" }, {"Ref" : "DeploymentTarget"} ]] }
+      },
+      "Type": "AWS::S3::Bucket"
+    },
+    "UserScratch": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "AccessControl": "Private",
+        "BucketName": { "Fn::Join" : ["-", ["userscratch", {"Ref" : "AWS::Region" }, {"Ref" : "DeploymentTarget"} ]] }
+      },
+      "Type": "AWS::S3::Bucket"
+    },
+    "BillingAndUsage": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "BucketName": { "Fn::Join" : ["-", ["usageandbilling", {"Ref" : "AWS::Region" }, {"Ref" : "DeploymentTarget"} ]] }
+      },
+      "Type": "AWS::S3::Bucket"
+    },
+    "Backup": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "BucketName": { "Fn::Join" : ["-", ["backup", {"Ref" : "AWS::Region" }, {"Ref" : "DeploymentTarget"} ]] }
+      },
+      "Type": "AWS::S3::Bucket"
+    },
+    "ProvisioningTemplates": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "AccessControl": "Private",
+        "BucketName": { "Fn::Join" : ["-", ["ghap-provisioning-templates", {"Ref" : "AWS::Region" }, {"Ref" : "DeploymentTarget"} ]] }
+      },
+      "Type": "AWS::S3::Bucket"
+    },
+    "VisualizationApplication": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "AccessControl": "Private",
+        "BucketName": { "Fn::Join" : ["-", ["ghap-visualization-apps", {"Ref" : "AWS::Region" }, {"Ref" : "DeploymentTarget"} ]] }
+      },
+      "Type": "AWS::S3::Bucket"
+    },
+    "VisualizationApplicationsPolicy" : {
+      "DependsOn" : [ "VisualizationApplication" ],
+      "Type" : "AWS::S3::BucketPolicy",
+      "Properties" : {
+        "Bucket" : { "Ref" : "VisualizationApplication" },
+        "PolicyDocument" : {
+          "Version":"2012-10-17",
+          "Id":"PutObjPolicy",
+          "Statement":[{
+            "Sid":"DenyUnEncryptedObjectUploads",
+            "Effect":"Deny",
+            "Principal":"*",
+            "Action":"s3:PutObject",
+            "Resource": { "Fn::Join" : [ "", ["arn:aws:s3:::",{"Ref" : "VisualizationApplication"},"/*"]] },
+            "Condition":{
+              "StringNotEquals": {
+                "s3:x-amz-server-side-encryption":"AES256"
+              }
+            }
+          }]
+        }
+      }
+    },
+    "SubmissionPolicy" : {
+      "DependsOn" : [ "Submission" ],
+      "Type" : "AWS::S3::BucketPolicy",
+      "Properties" : {
+        "Bucket" : { "Ref" : "Submission" },
+        "PolicyDocument" : {
+          "Version":"2012-10-17",
+          "Id":"PutObjPolicy",
+          "Statement":[{
+            "Sid":"DenyUnEncryptedObjectUploads",
+            "Effect":"Deny",
+            "Principal":"*",
+            "Action":"s3:PutObject",
+            "Resource": { "Fn::Join" : [ "", ["arn:aws:s3:::",{"Ref" : "Submission"},"/*"]] },
+            "Condition":{
+              "StringNotEquals": {
+                "s3:x-amz-server-side-encryption":"AES256"
+              }
+            }
+          }]
+        }
+      }
+    }
+  },
+  "Outputs" : {
+    "UserScratchOutput" : {
+      "Value" : { "Ref" : "UserScratch" },
+      "Description" : "User Scratch S3 Bucket"
+    },
+    "BackupOutput" : {
+      "Value" : { "Ref" : "Backup" },
+      "Description" : "User Backup S3 Bucket"
+    },
+    "ProvisioningTemplates" : {
+      "Value" : { "Ref" : "ProvisioningTemplates" },
+      "Description" : "ProvisioningTemplates S3 Bucket"
+    },
+    "SubmissionOutput" : {
+      "Value" : { "Ref" : "Submission" },
+      "Description" : "Submission S3 Bucket"
+    },
+    "VisualizationApplicationsOutput" : {
+      "Value" : { "Ref" : "VisualizationApplication" },
+      "Description" : "VisualizationApplication S3 Bucket"
+    },
+    "ConfigurationOutput" : {
+      "Value" : { "Ref" : "Configuration" },
+      "Description" : "Configuration S3 Bucket"
+    }
+  }
+}

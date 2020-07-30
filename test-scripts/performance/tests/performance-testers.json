@@ -1,0 +1,14 @@
+{
+  "samba": {
+    "username" : "vlad.ruzov",
+    "password" : ""
+  },
+  "qa": {
+    "username" : "vlad.ruzov.perf.test",
+    "password" : ""
+  },
+  "prod": {
+    "username" : "vlad.ruzov.perf.test",
+    "password" : ""
+  }
+}

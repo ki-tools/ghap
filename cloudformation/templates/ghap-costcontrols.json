@@ -1,0 +1,67 @@
+{
+  "Description": "Cloudformation Stack for Setup of Cost Control Mechanisms within GHAP",
+
+  "Parameters": {
+    "DeploymentTarget": {
+      "AllowedValues" : ["prod", "qa", "devtest", "samba"],
+      "ConstraintDescription" : "Must specify prod,qa,samba,devtest.",
+      "Description": "DeploymentTarget values these are either prod,qa,devtest,samba",
+      "Type": "String"
+    },
+
+    "CostControlsBasicLambdaFunctionHandlerRoleARN" : {
+      "Description" : "ARN for the role to use for the Cost Controls lambda function handlers",
+      "Type" : "String"
+    }
+
+
+  },
+
+  "Resources": {
+
+    "GhapIdleResourcesSNSTopic": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "DisplayName" : "SNS Topic that sends notifications regarding idle resources",
+
+        "Subscription" : [
+          { "Endpoint" : { "Fn::GetAtt": ["GhapIdleResourcesNotificationHandler", "Arn"] }, "Protocol" : "lambda" }
+        ]
+      }
+    },
+
+    "GhapIdleResourcesNotificationHandler": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Handler": "io.ghap.session.monitor.lambda.EntryPoint::handleRequest",
+        "Role": {
+          "Ref" : "CostControlsBasicLambdaFunctionHandlerRoleARN"
+        },
+        "Description": "Lambda Function that handles notifications regarding idle resources",
+
+        "Code": {
+          "S3Bucket": {
+            "Fn::Join": ["-", ["ghap-lambda", {
+              "Ref": "AWS::Region"
+            }, {
+              "Ref": "DeploymentTarget"
+            } ]]
+          },
+          "S3Key": "session-monitor-lambda-1.0.zip"
+        },
+
+        "Runtime": "java8",
+        "MemorySize": "1024",
+        "Timeout": "60"
+      }
+    }
+
+  },
+
+  "Outputs": {
+      "GhapIdleResourcesSNSTopicARNOutput": {
+          "Value": { "Ref": "GhapIdleResourcesSNSTopic" },
+          "Description": "The ARN to the SNS Topic that can receive notification regarding Idle Resources"
+      }
+  }
+}

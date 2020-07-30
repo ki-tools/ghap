@@ -1,0 +1,17 @@
+address: http://localhost:8080/auth/sign-in?username=username&password=********
+method: GET (POST is possible too with request type "application/x-www-form-urlencoded")
+response type: application/json
+response example:
+{
+    "dn":"CN=Administrator,CN=Users,DC=ad,DC=loc",
+    "name":"Administrator",
+    "firstName":null,
+    "lastName":null,
+    "email":null
+}
+
+error response: "invalidCredentials"
+
+For "Sign Out" just use GET for http://localhost:8080/auth/sign-out
+notes: Only signed in users(with valid session) can make sign out
+valid response code is 204

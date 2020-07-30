@@ -1,0 +1,12 @@
+address: http://localhost:8080/user/
+method: POST
+response type: application/json
+
+request: {
+         "parentDn": "cn=users,dc=ad,dc=loc",
+         "name": "mmm",
+         "firstName": "MyFirstName",
+         "lastName": "MyLastName",
+         "email":  "mmm@mmm.ru",
+         "password": "1"
+       }

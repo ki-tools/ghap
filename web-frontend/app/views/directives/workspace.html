@@ -1,0 +1,165 @@
+<div class="content-row separator-header padded">
+  <div class="content">
+    <div class="grid gutter">
+      <div class="grid-col col-8-12">
+        <h4>TEMPORARY WORKSPACE</h4>
+      </div>
+      <div class="grid-col col-4-12">
+        <h4>PROGRAM DATA ACCESS</h4>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="content-row white padded separator-right full-separate-right separator-to-dark">
+  <div class="content">
+    <div class="grid gutter">
+      <div class="grid-col col-8-12 separator-padded-right">
+        <ol class="breadcrumb">
+          <li ng-repeat="link in breadcrumb"><a ng-click="load(link)"
+                                                ng-bind="link.name || 'Home'"
+                                                href=""></a></li>
+        </ol>
+        <div class="error error-message-cont"
+             ng-show="workspaceError">{{workspaceError}}</div>
+        <table>
+          <thead>
+            <tr>
+              <th colspan="3">
+                <select class="workspace-files-bulk-action"
+                        ng-disabled="noSelection()"
+                        placeholder="Actions"
+                        ng-model="action"
+                        ng-change="doFileAct()"
+                        ng-options="action for action in actions"></select>
+              </th>
+              <th colspan="2" class="table-col-btns">
+                <div class="uploading-message" ng-show="uploading">Uploading...</div>
+                <span class="btn-file upload-button" ng-hide="uploading">
+                  <button class="submit-button sm-button">Upload</button>
+                  <input title="Upload Files to User Workspace"
+                         nv-file-select
+                         type="file"
+                         ng-if="uploader"
+                         uploader="uploader"
+                         multiple  />
+                </span>
+                <div class="button-cont align-right">
+                  <div class="popup-cont" ng-class="{active: isNewFolderDialogVisible}">
+                    <button class="submit-button sm-button"
+                            ng-click="toggleNewFolderDialog()">New Folder</button>
+                    <div class="popup">
+                      <table cellpadding="0" cellspacing="0" class="no-select">
+                        <tr>
+                          <td>
+                            <div class="input-cont no-margin inline">
+                              <input id="new-folder-input"
+                                     type="text"
+                                     class="text-input"
+                                     placeholder="new folder name"
+                                     ng-keypress="onKeyPress($event)"
+                                     ng-model="newFolderName" />
+                            </div>
+                          </td>
+                          <td>
+                            <img src="/images/ic-add-active.png"
+                                 width="25px"
+                                 height="25px"
+                                 ng-click="hideAndCreateFolder()" />
+                          </td>
+                        </tr>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </th>
+            </tr>
+          </thead>
+          <thead>
+            <tr>
+              <th class="checkbox-col">
+                <input type="checkbox"
+                       ng-checked="allFilesSelected()"
+                       ng-model="selectAllFiles"
+                       ng-click="toggleSelectAllFiles()">
+              </th>
+              <th class="table-col-icon"></th>
+              <th class="table-col-name">Name</th>
+              <th class="table-col-type">Type</th>
+              <th class="table-col-modified">Modified</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr ng-repeat="f in userData">
+              <td class="table-col-checkbox">
+                <input type="checkbox" 
+                       ng-model="f.checked" />
+              </td>
+              <td class="table-col-icon"
+                  ng-class="{folder: f.isDirectory, file: !f.isDirectory}"></td>
+              <td class="table-col-name">
+                <!-- see: http://stackoverflow.com/questions/5239758/css-truncate-table-cells-but-fit-as-much-as-possible -->
+                <!--Relative-positioned container-->
+                <div class="long-text-container">
+                    <!--Visible-->
+                    <div class="long-text-content pointer" ng-bind="f.name" ng-click="load(f)"></div>
+                    <!--Hidden spacer-->
+                    <div class="spacer"><!--Content here--></div>
+                    <!--Keeps the container from collapsing without
+                        having to specify a height-->
+                    <span>&nbsp;</span>
+                </div>
+              </td>
+              <td class="table-col-type">
+                <span ng-if="f.isDirectory">Folder</span>
+                <span ng-if="!f.isDirectory">File</span>
+              </td>
+              <td class="table-col-modified"
+                  ng-bind="f.lastModified"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+
+
+      <div class="grid-col col-4-12 separator-padded-left">
+        <div class="list-cont">
+          <filter class="no-top-margin"
+                  field="programFilter.name"
+                  placeholder="Search by program name"></filter>
+          <ul class="list border-darker">
+            <li class="list__item"
+                ng-repeat="program in programs | filter:programFilter | orderBy: 'name'"
+                ng-show="isUserProgram(program)">
+              <div class="list__item__text">
+                {{program.name}}&nbsp;
+                <span ng-show="isReadonlyProgram(program)"><img title="Read-Only" src="/images/read-only.png" /></span>
+              </div>
+              <ul class="list__sub-menu">
+                <li class="list__sub-menu__item"
+                    ng-repeat="grant in program.grants | orderBy: 'name'"
+                    ng-show="userGrants[grant.id]">
+                  <div class="list__item__text">
+                    <span class="cloneUrl" ng-click="copyTextToClipboard(grant)" title="Copy git URL for cloning to the clipboard">
+                          <img src="/images/ic-checkmark-sm.png" ng-show="grant.inCopyProcess">
+                          <span ng-hide="grant.inCopyProcess">copy url</span>
+                    </span>
+                    <div ng-mouseover="getChangeInfo(grant)"
+                         popover-title="Last commit"
+                         popover-trigger="mouseenter"
+                         popover-placement="left"
+                         popover-template="'views/directives/workspace-change-info.html'">
+                      {{grant.name}}&nbsp;
+                      <span ng-show="isReadonlyGrant(grant)"><img title="Read-Only" src="/images/read-only.png" /></span>
+                    </div>
+                  </div>
+                </li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

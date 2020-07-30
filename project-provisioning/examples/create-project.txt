@@ -1,0 +1,10 @@
+curl -i -H "Content-Type: application/json" -X POST -d '{"name":"project2","key":"key2"}' http://192.168.1.33:8080/project
+
+name - required.
+key - unique project id in stash required.
+description - optional
+
+response example
+
+{"success":true,"errors":null,"data":{"id":"0accb4aa-0ae8-4b78-b45c-0138b2e008d8","name":"project2","key":"KEY2","description":null}}
+

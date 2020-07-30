@@ -1,0 +1,1 @@
+node C:/ghap-tests/spec/utils/ghap-delete-project %1 %2 %3

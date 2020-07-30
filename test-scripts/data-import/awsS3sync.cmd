@@ -1,0 +1,1 @@
+aws s3 sync s3://ghap-curator-data-staging-us-east-1/%1 . %2

@@ -1,0 +1,276 @@
+/*
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ *
+*/
+
+/*
+ * vanilla skin                          
+ * additional .css on top of jspwiki.css 
+ */
+
+/*
+ * empty skin template                          
+ * additional .css on top of jspwiki.css 
+ */
+
+/* +++ 010 LAYOUT of main ID blocks +++ */
+/* +++ 020 LOOK and FEEL of main blocks with ID +++ */
+/* +++ 200 Generic stuff here +++ */
+/* +++ 210 Page titles, headings, and paragraphs +++ */
+/* +++ 220 Lists and bullets +++ */
+/* +++ 225 Forms, Labels, form-values and form-help +++ */
+/* +++ 230 Horizontal rules +++ */
+/* +++ 240 Pre-formatted text blocks and code +++ */
+/* +++ 250 Hyperlinks +++ */
+/* +++ 260 Image styles, and Logo +++ */
+/* +++ 270 Footnotes and small text +++ */
+/* +++ 280 Convenience styles and info/warning/error dialogs +++ */
+/* +++ 290 Comment boxes (used on some pages) +++ */
+/* +++ 300 Wiki tables and zebra tables +++ */
+/* +++ 350 Attachments +++ */
+/* +++ 400 Styles for specific JSPs +++ */
+/* +++ 405 AttachmentTab.JSP +++ */
+/* +++ 410 CommentContent +++ */
+/* +++ 415 ConflictContent +++ */
+/* +++ 420 DiffContent and Diff Providers: Traditional and External +++ */
+/* +++ 421 Contextual diff provider +++ */
+/* +++ 425 Edit/EditContent and CommentContent +++ */
+/* +++ 430 Edit/EditContent +++ */
+/* +++ 440 Favorites +++ */
+/* +++ 450 FindContent / 450 Graph Bars +++ */
+/* +++ 455 Footer +++ */
+/* +++ 460 Header +++ */
+/* +++ 465 InfoContent +++ */
+/* +++ 470 PageActions.jsp +++ */
+/* +++ 475 PageContent.jsp +++ */
+/* +++ 475 PreviewContent - "This is a preview" comment +++ */
+/* +++ 480 PreferencesContent, LoginContent, GroupContent +++ */
+/* +++ 485 SearchBox +++ */
+/* +++ 490 ViewTemplate +++ */
+/* +++ 600 JSPWiki plugins +++ */
+/* +++ 610 Image plugin +++ */
+/* +++ 203 image plugin stuff +++ */
+/* +++ 620 Index plugin +++ */
+/* +++ 625 Table of contents plugin +++ */
+/* +++ 630 Weblog and weblogarchive plugins +++ */
+/* +++ 800 JSPWiki JSP Taglibs +++ */
+/* +++ 805 CalendarTag +++ */
+/* +++ 900 "Special-effects" JavaScript styles +++ */
+/* +++ 905 Search highlights +++ */
+/* +++ 910 Tabbed Pages +++ */
+/* +++ 920 Collapsible lists +++ */
+/* +++ 930 Sortable tables +++ */
+/* +++ 940 Quick Section Links +++ */
+
+@font-face {
+ font-family: "DIN";
+ font-weight: 400;
+ src: url("fonts/DINCompPro.ttf") format("truetype"),
+ url("fonts/DINWebPro.eot") format("embedded-opentype"),
+ url("fonts/DINWebPro.woff") format("woff");
+}
+@font-face {
+ font-family: "DIN";
+ font-weight: 600;
+ src: url("fonts/DINCompPro-Medium.ttf") format("truetype");
+}
+@font-face {
+ font-family: "DIN";
+ font-weight: 700;
+ src: url("fonts/DINCompPro-Bold.ttf") format("truetype"),
+ url("fonts/DINWebPro-Bold.eot") format("embedded-opentype"),
+ url("fonts/DINWebPro-Bold.woff") format("woff");
+}
+
+
+/**
+ * Reset
+ * -----------------------------------------------------------------------------
+ */
+
+html { height: 100%; font-size: 62.5%; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; box-sizing: border-box; }
+input[type='text'], input[type='email'], input[type='tel'], input[type='search'], input[type='submit'], input[type='button'], input[type='image'] { -webkit-appearance: none; border-radius: 0px; }
+input[type='submit'], input[type='button'] { border: none; cursor: pointer; -webkit-font-smoothing: antialiased; }
+button::-moz-focus-inner, input[type="button"]::-moz-focus-inner, input[type="submit"]::-moz-focus-inner, input[type="reset"]::-moz-focus-inner { padding: 0 !important; border: 0 none; }
+*, *:before, *:after { padding: 0; margin: 0; box-sizing: inherit; }
+body { height: 100%; font-family: "DIN", Helvetica, sans-serif; font-size: 1.6rem; }
+img {  border: none; }
+img, embed, object, video { max-width: 100%; }
+ul, ol { padding-left: 4.0rem; }
+a { color: inherit; outline: none; }
+::-webkit-input-placeholder { font-size: inherit; font-family: inherit; font-weight: inherit; color: inherit; opacity: .5; }
+::-moz-placeholder { font-size: inherit; font-family: inherit; font-weight: inherit; color: inherit; opacity: .5; }
+:-ms-input-placeholder { font-size: inherit; font-family: inherit; font-weight: inherit; color: inherit; opacity: .5; }
+
+html, body, .content { background: #f0f0ee; }
+
+body {
+ font-family: DIN,Helvetica,sans-serif;
+ font-size: 1.6rem;
+}
+
+a.logo {
+ background: url(images/global-health-logo.png) no-repeat;
+ width: 203px;
+ height: 44px;
+ position: relative;
+ margin-right: 24px;
+}
+
+.header {
+ background:#8cb7c7;
+}
+
+.pagename {
+ padding: 0;
+}
+
+.header .pagename {
+ padding: 5px 24px 5px 0;
+}
+
+.header .cage {
+ top: 10px;
+ height: 44px;
+}
+
+.titlebox {
+ display: none;
+}
+
+.content:after {
+ background:#6698AD;
+}
+
+.leftmenu ul {
+ list-style: none;
+}
+
+.sidebar, .sidebar ul{
+ padding: 0;
+}
+
+.sidebar ul li {
+ padding: 10px 20px 10px 40px;
+ border-bottom: 1px solid #86B2C3;
+ font-size: 2rem;
+}
+.footer {
+ background: #373838;
+ color: #e2e1dd;
+}
+.footer a {
+ color: #e2e1dd;
+}
+.copyright {
+ float: right;
+}
+
+.icon-user {
+ top: 0;
+}
+
+.icon-user:before {
+ background-image: url(images/default-user-image.png);
+ background-repeat: no-repeat;
+ background-size: 16px 16px;
+ background-position: 0 .2em;
+ display: inline-block;
+ width: 16px;
+ color: transparent;
+}
+
+.top-nav {
+ font-size: 1.4rem;
+ font-family: DIN,Helvetica,sans-serif;
+ padding: 6px 0;
+}
+.userbox {
+ margin-right: 30px;
+}
+.top-nav a {
+ cursor: pointer;
+}
+.top-nav-text, .top-nav-text a {
+ font-weight: 600;
+ color: #f0f0ee;
+ font-size: 1.4rem;
+ line-height: 1.6rem;
+ display: inline-block;
+ vertical-align: middle;
+}
+
+.searchbox .icon-search:before {
+ content: "\f002";
+ position: absolute;
+ right: 5px;
+ top: 5px;
+ color: white;
+ z-index: 1000;
+}
+
+.searchbox {
+ margin-top: 0.8rem;
+ margin-right: 3rem;
+ width: 25rem;
+}
+
+.searchbox .icon-search {
+ display: block;
+ width: 100%;
+}
+
+.searchbox .icon-search input {
+ background: transparent;
+ color: white;
+ border: 1px solid white;
+ border-radius: 20px;
+ width: 100%;
+}
+
+.searchbox .dropdown-menu[data-hover-parent] {
+ margin-top: 3px;
+ border-radius: 20px;
+ width: 100%;
+}
+
+.searchbox .btn-primary {
+ background: #8cb7c7;
+ border-color: #8cb7c7;;
+ border-radius: 20px;
+}
+
+/* http://html5.by/blog/placeholder/ */
+.searchbox .icon-search input::-webkit-input-placeholder {opacity: 1;color:#fff;}
+.searchbox .icon-search input::-moz-placeholder          {opacity: 1;color:#fff;}/* Firefox 19+ */
+.searchbox .icon-search input:-moz-placeholder           {opacity: 1;color:#fff;}/* Firefox 18- */
+.searchbox .icon-search input:-ms-input-placeholder      {opacity: 1;color:#fff;}
+
+.searchbox .icon-search input:focus::-webkit-input-placeholder {color: transparent}
+.searchbox .icon-search input:focus::-moz-placeholder          {color: transparent}
+.searchbox .icon-search input:focus:-moz-placeholder           {color: transparent}
+.searchbox .icon-search input:focus:-ms-input-placeholder      {color: transparent}
+
+.nav li.disabled {
+ display: none;
+}
+
+.page-content a:not(.createpage) {
+ color: #3086ab;
+}

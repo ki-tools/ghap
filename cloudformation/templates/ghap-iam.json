@@ -1,0 +1,904 @@
+{
+  "Description" : "Cloudformation Stack for the IAM Roles/Profiles and Policies for the GHAP Platform",
+  "Parameters": {
+    "S3Submission": {
+      "Description": "The datasubmission s3 bucket",
+      "Type": "String"
+    },
+    "S3Configuration": {
+      "Description": "The Configuration s3 bucket",
+      "Type": "String"
+    },
+    "S3Backup": {
+      "Description": "The Backup s3 bucket",
+      "Type": "String"
+    },
+    "S3ProvisioningTemplates": {
+      "Description": "The provisioning template s3 bucket",
+      "Type": "String"
+    },
+    "S3UserScratch": {
+      "Description": "The user scratch s3 bucket",
+      "Type": "String"
+    },
+    "VisualizationApplications" : {
+      "Description": "The visualization applications s3 bucket",
+      "Type": "String"
+    },
+    "Domain": {
+      "Description" : "Domain to configure this is either ghap.io., qa.ghap.io., dev.ghap.io.",
+      "Type" : "String",
+      "AllowedValues" : ["ghap.io.", "samba.ghap.io.", "dev.ghap.io.", "qa.ghap.io."],
+      "Default" : "ghap.io."
+    },
+    "DeploymentTarget": {
+      "AllowedValues" : ["prod", "qa","devtest", "samba"],
+      "ConstraintDescription" : "Must specify prod or test.",  
+      "Description": "DeploymentTarget values these are either prod, devtest, qa",
+      "Type": "String"
+    } 
+  },
+  "Conditions" : {
+    "CreateDevTestResources" : {"Fn::Equals" : [{"Ref" : "DeploymentTarget"}, "dev"]},
+    "CreateProdResources" : {"Fn::Equals" : [{"Ref" : "DeploymentTarget"}, "prod"]}
+  },
+  "Mappings" : {
+    "Region2Principal": {
+      "ap-northeast-1": { "EC2Principal": "ec2.amazonaws.com", "OpsWorksPrincipal": "opsworks.amazonaws.com" },
+      "ap-southeast-1": { "EC2Principal": "ec2.amazonaws.com", "OpsWorksPrincipal": "opsworks.amazonaws.com" },
+      "ap-southeast-2": { "EC2Principal": "ec2.amazonaws.com", "OpsWorksPrincipal": "opsworks.amazonaws.com" },
+      "eu-west-1": { "EC2Principal": "ec2.amazonaws.com", "OpsWorksPrincipal": "opsworks.amazonaws.com" },
+      "sa-east-1": { "EC2Principal": "ec2.amazonaws.com", "OpsWorksPrincipal": "opsworks.amazonaws.com" },
+      "us-east-1": { "EC2Principal": "ec2.amazonaws.com", "OpsWorksPrincipal": "opsworks.amazonaws.com" },
+      "us-west-1": { "EC2Principal": "ec2.amazonaws.com", "OpsWorksPrincipal": "opsworks.amazonaws.com" },
+      "us-west-2": { "EC2Principal": "ec2.amazonaws.com", "OpsWorksPrincipal": "opsworks.amazonaws.com" }
+    }
+  },
+  "Resources" : {
+    "AdministratorPolicy": {
+      "Properties": {
+        "Groups": [ { "Ref": "Administrators" } ],
+        "PolicyDocument": {
+          "Statement": [ { "Action": "*", "Effect": "Allow", "Resource": "*" } ]
+        },
+        "PolicyName": "Administrator",
+        "Roles": [ { "Ref": "AdministratorRole" } ]
+      },
+      "Type": "AWS::IAM::Policy"
+    },
+    "AdministratorRole": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            { 
+              "Action": [ "sts:AssumeRole" ],
+              "Effect": "Allow",
+              "Principal": { "Service": [ "ds.amazonaws.com" ] }
+            }
+          ]
+        },
+        "Path": "/administrators/"
+      },
+      "Type": "AWS::IAM::Role"
+    },
+    "Administrators": {
+      "Properties": {
+        "Path": "/administrators/"
+      },
+      "Type": "AWS::IAM::Group"
+    },
+    "CuratorRole": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": [ "sts:AssumeRole" ],
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [ "ds.amazonaws.com" ]
+              }
+            }
+          ]
+        },
+        "Path": "/curators/"
+      },
+      "Type": "AWS::IAM::Role"
+    },
+    "Curators": {
+      "Properties": {
+        "Path": "/curators/"
+      },
+      "Type": "AWS::IAM::Group"
+    },
+    "Submitters" : {
+      "Properties": {
+        "Path": "/submitters/",
+        "Policies" : [{
+          "PolicyName" : "DataSubmissionPolicy",
+          "PolicyDocument" : {
+            "Statement":[ {
+              "Effect":"Allow",
+              "Action":[ "s3:ListBucket", "s3:GetBucketLocation" ],
+              "Resource": { "Fn::Join" : [ "", ["arn:aws:s3:::",{"Ref" : "S3Submission"} ]] }
+            },
+            {
+              "Effect":"Allow",
+              "Action":[ "s3:PutObject", "s3:GetObject", "s3:DeleteObject" ],
+              "Resource": { "Fn::Join" : [ "", ["arn:aws:s3:::",{"Ref" : "S3Submission"},"/*" ]] }
+            }]
+          }
+        }]
+      },
+      "Type": "AWS::IAM::Group"
+    },
+    "Submitter" : {
+      "DependsOn" : [ "Submitters" ],
+      "Type": "AWS::IAM::User",
+      "Properties" : {
+        "Path" : "/submitter/",
+        "Groups" : [{ "Ref" : "Submitters" }]
+      }
+    },
+    "SubmitterAccessKey" : {
+      "Type" : "AWS::IAM::AccessKey",
+      "Properties" : {
+        "UserName" : { "Ref" : "Submitter" },
+        "Status" : "Active",
+        "Serial" : "0"
+      }
+    },
+    "RemoteQueries" : {
+      "Properties" : {
+        "Path" : "/remotequeries/"
+      },
+      "Type" : "AWS::IAM::Group"
+    },
+    "RemoteQuery" : {
+      "DependsOn" : [ "RemoteQueries" ],
+      "Type" : "AWS::IAM::User",
+      "Properties" : {
+        "Path" : "/remotequery/",
+        "Groups" : [{"Ref" : "RemoteQueries"}]
+      }
+    },
+    "RemoteQueryAccessKey" : {
+      "Type" : "AWS::IAM::AccessKey",
+      "Properties" : {
+        "UserName" : { "Ref" : "RemoteQuery" },
+        "Status" : "Active",
+        "Serial" : "0"
+      }
+    },
+    "Viewers" : {
+      "Properties": {
+        "Path": "/viewers/"
+      },
+      "Type": "AWS::IAM::Group"
+    },
+    "Viewer" : {
+      "DependsOn" : [ "Viewers" ],
+      "Type": "AWS::IAM::User",
+      "Properties" : {
+        "Path" : "/viewer/",
+        "Groups" : [{ "Ref" : "Viewers" }]
+      }
+    },
+    "ViewerAccessKey" : {
+      "Type" : "AWS::IAM::AccessKey",
+      "Properties" : {
+        "UserName" : { "Ref" : "Viewer" },
+        "Status" : "Active",
+        "Serial" : "0"
+      }
+    },
+    "VisualizationPublishers" : {
+      "Properties": {
+        "Path": "/visualizationpublishers/",
+        "Policies" : [{
+          "PolicyName" : "VisualizationApplicationsSubmissionPolicy",
+          "PolicyDocument" : {
+            "Statement":[ {
+              "Effect":"Allow",
+              "Action":[ "s3:ListBucket", "s3:GetBucketLocation" ],
+              "Resource": { "Fn::Join" : [ "", ["arn:aws:s3:::",{"Ref" : "VisualizationApplications"} ]] }
+            },
+              {
+                "Effect":"Allow",
+                "Action":[ "s3:PutObject", "s3:GetObject", "s3:DeleteObject" ],
+                "Resource": { "Fn::Join" : [ "", ["arn:aws:s3:::",{"Ref" : "VisualizationApplications"},"/*" ]] }
+              }]
+          }
+        }]
+      },
+      "Type": "AWS::IAM::Group"
+    },
+    "VisualizationPublisher" : {
+      "DependsOn" : [ "VisualizationPublishers" ],
+      "Type": "AWS::IAM::User",
+      "Properties" : {
+        "Path" : "/visualizationpublisher/",
+        "Groups" : [{ "Ref" : "VisualizationPublishers" }]
+      }
+    },
+    "VisualizationPublisherKey" : {
+      "Type" : "AWS::IAM::AccessKey",
+      "Properties" : {
+        "UserName" : { "Ref" : "VisualizationPublisher" },
+        "Status" : "Active",
+        "Serial" : "0"
+      }
+    },
+    "GhapAdministratorRole": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": [ "sts:AssumeRole" ],
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [ "ds.amazonaws.com" ]
+              }
+            }
+          ]
+        },
+        "Path": "/ghapadministrator/"
+      },
+      "Type": "AWS::IAM::Role"
+    },
+    "GhapAdministrators": {
+      "Properties": {
+        "Path": "/ghapadministrators/"
+      },
+      "Type": "AWS::IAM::Group"
+    },
+    "ModelerRole": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": [ "sts:AssumeRole" ],
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [ "ds.amazonaws.com" ]
+              }
+            }
+          ]
+        },
+        "Path": "/modelers/"
+      },
+      "Type": "AWS::IAM::Role"
+    },
+    "Modelers": {
+      "Properties": {
+        "Path": "/modelers/",
+        "Policies" : []
+      },
+      "Type": "AWS::IAM::Group"
+    },
+    "Modeler" : {
+      "DependsOn" : [ "Modelers" ],
+      "Type": "AWS::IAM::User",
+      "Properties" : {
+        "Path" : "/modeler/",
+        "Groups" : [{ "Ref" : "Modelers" }]
+      }
+    },
+    "ModelerAccessKey" : {
+      "Type" : "AWS::IAM::AccessKey",
+      "Properties" : {
+        "UserName" : { "Ref" : "Modeler" },
+        "Status" : "Active",
+        "Serial" : "0"
+      }
+    },
+    "BasicLambdaFunctionHandlerRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [ "lambda.amazonaws.com" ]
+              },
+              "Action": [ "sts:AssumeRole" ]
+            }
+          ]
+        },
+        "Path": "/lambda-role/",
+        "Policies": [
+          {
+            "PolicyName": "BasicLambdaFunctionHandlerRolePolicy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Action": [ "logs:*" ],
+                  "Effect": "Allow",
+                  "Resource": "arn:aws:logs:*:*:*"
+                },
+                {
+                  "Action": [ "ec2:*" ],
+                  "Effect": "Allow",
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "Testers" : {
+      "Properties" : {
+        "Path" : "/testers/",
+        "Policies" : []
+      },
+      "Type" : "AWS::IAM::Group"
+    },
+    "Tester" : {
+      "DependsOn" : [ "Testers" ],
+      "Type" : "AWS::IAM::User",
+      "Properties" : {
+        "Path" : "/tester/",
+        "Groups" : [{"Ref" : "Testers" }]
+      }
+    },
+    "TesterAccessKey" : {
+      "Type" : "AWS::IAM::AccessKey",
+      "Properties" : {
+        "UserName" : { "Ref" : "Tester" },
+        "Status" : "Active",
+        "Serial" : "0"
+      }
+    },
+    "Backups": {
+      "Properties": {
+        "Path": "/backups/",
+        "Policies" : []
+      },
+      "Type": "AWS::IAM::Group"
+    },
+    "Backup" : {
+      "DependsOn" : [ "Backups" ],
+      "Type": "AWS::IAM::User",
+      "Properties" : {
+        "Path" : "/backup/",
+        "Groups" : [{ "Ref" : "Backups" }]
+      }
+    },
+    "BackupAccessKey" : {
+      "Type" : "AWS::IAM::AccessKey",
+      "Properties" : {
+        "UserName" : { "Ref" : "Backup" },
+        "Status" : "Active",
+        "Serial" : "0"
+      }
+    },
+    "WebServerInstanceProfile": {
+      "Properties": {
+        "Path": "/",
+        "Roles": [ { "Ref": "WebServerRole" } ]
+      },
+      "Type": "AWS::IAM::InstanceProfile"
+    },
+    "WebServerRole": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": [ "sts:AssumeRole" ],
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [ { "Fn::FindInMap": [ "Region2Principal", { "Ref": "AWS::Region" }, "EC2Principal" ] }]
+              }
+            }
+          ]
+        },
+        "Path": "/"
+      },
+      "Type": "AWS::IAM::Role"
+    },
+    "WebServerRolePolicy": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "NotAction": "iam:*",
+              "Resource": "*"
+            }
+          ]
+        },
+        "PolicyName": "WebServerRole",
+        "Roles": [ { "Ref": "WebServerRole" } ]
+      },
+      "Type": "AWS::IAM::Policy"
+    },
+    "ConfigurationPolicy" : {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "Groups": [
+          {"Ref": "Modelers"},
+          {"Ref": "Curators"},
+          {"Ref": "Submitters"},
+          {"Ref": "VisualizationPublishers"},
+          {"Ref": "RemoteQueries"}
+        ],
+        "PolicyName": "ConfigurationPolicy",
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:ListBucket",
+                "s3:GetBucketLocation"
+              ],
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:s3:::",
+                    {"Ref": "S3Configuration"}
+                  ]
+                ]
+              }
+            },
+            {
+              "Effect": "Allow",
+              "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:s3:::",
+                    {"Ref": "S3Configuration"},
+                    "/*"
+                  ]
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    "TestingPolicy" : {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "Groups": [
+          {
+            "Ref": "Testers"
+          }
+        ],
+        "PolicyName": "TestingPolicy",
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2:CreateVpc",
+                "ec2:CreateInternetGateway",
+                "ec2:DescribeVpcs",
+                "ec2:DescribeInternetGateways",
+                "ec2:DeleteVpc",
+                "ec2:DeleteInternetGateway",
+                "ec2:ModifyVpcAttribute",
+                "ec2:CreateNetworkAcl",
+                "ec2:CreateSubnet",
+                "ec2:DeleteNetworkAcl",
+                "ec2:DeleteSubnet",
+                "ec2:DescribeNetworkAcls",
+                "ec2:CreateRouteTable",
+                "ec2:DeleteRouteTable",
+                "ec2:AttachInternetGateway",
+                "ec2:DescribeRouteTables",
+                "ec2:DetachInternetGateway",
+                "ec2:CreateRoute",
+                "ec2:DeleteRoute",
+                "ec2:CreateNetworkAclEntry",
+                "ec2:DeleteNetworkAclEntry",
+                "ec2:RevokeSecurityGroupEgress",
+                "ec2:AuthorizeSecurityGroupEgress",
+                "ec2:ReplaceNetworkAclAssociation",
+                "ec2:AssociateRouteTable",
+                "ec2:DisassociateRouteTable"
+              ],
+              "Resource": "*"
+            }
+          ]
+        }
+      }
+    },
+    "ProvisioningPolicy" : {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "Groups": [
+          {
+            "Ref": "Modelers"
+          },
+          {
+            "Ref": "Curators"
+          },
+          {
+            "Ref": "Testers"
+          }
+        ],
+        "PolicyName": "ProvisioningPolicy",
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:ListBucket",
+                "s3:GetBucketLocation"
+              ],
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:s3:::",
+                    {
+                      "Ref": "S3ProvisioningTemplates"
+                    }
+                  ]
+                ]
+              }
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:GetObject"
+              ],
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:s3:::",
+                    {
+                      "Ref": "S3ProvisioningTemplates"
+                    },
+                    "/*"
+                  ]
+                ]
+              }
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2:AttachVolume",
+                "ec2:DetachVolume",
+                "ec2:CreateVolume",
+                "ec2:DescribeVolumes",
+                "ec2:DescribeVolumeStatus",
+                "ec2:DeleteVolume",
+                "ec2:CreateKeyPair",
+                "ec2:DeleteKeyPair",
+                "ec2:DescribeImages",
+                "ec2:DescribeKeyPairs",
+                "ec2:DescribeSecurityGroups",
+                "ec2:CreateSecurityGroup",
+                "ec2:DeleteSecurityGroup",
+                "ec2:AuthorizeSecurityGroupIngress",
+                "ec2:RunInstances",
+                "ec2:DescribeInstances",
+                "ec2:DescribeInstanceStatus",
+                "ec2:DescribeAddresses",
+                "ec2:DescribeInstanceAttribute",
+                "ec2:TerminateInstances",
+                "ec2:StopInstances",
+                "ec2:StartInstances",
+                "ec2:ModifyInstanceAttribute",
+                "ec2:CreateTags",
+                "ec2:DescribeTags",
+                "ec2:DescribeSubnets",
+                "ec2:DescribeAccountAttributes",
+                "ec2:GetConsoleOutput"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "cloudformation:CreateStack",
+                "cloudformation:DeleteStack",
+                "cloudformation:DescribeStacks",
+                "cloudformation:DescribeStackResources",
+                "cloudformation:StartInstances",
+                "cloudformation:StopInstances",
+                "cloudformation:TerminateInstances"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "sqs:CreateQueue",
+                "sqs:DeleteQueue",
+                "sqs:SendMessage",
+                "sqs:ReceiveMessage",
+                "sqs:GetQueueAttributes"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect" : "Allow",
+              "Action" : [
+                "autoscaling:CreateLaunchConfiguration",
+                "autoscaling:SetDesiredCapacity",
+                "autoscaling:AttachInstances",
+                "autoscaling:DetachInstances",
+                "autoscaling:CreateAutoScalingGroup",
+                "autoscaling:DeleteAutoScalingGroup",
+                "autoscaling:UpdateAutoScalingGroup",
+                "autoscaling:DescribeAutoScalingGroups",
+                "autoscaling:DescribeAutoScalingInstances",
+                "autoscaling:DescribeScalingActivities",
+                "autoscaling:TerminateInstanceInAutoScalingGroup",
+                "autoscaling:DescribeLaunchConfigurations",
+                "autoscaling:PutNotificationConfiguration",
+                "autoscaling:DeleteLaunchConfiguration",
+                "autoscaling:PutLifecycleHook",
+                "autoscaling:PutScalingPolicy",
+                "autoscaling:DeletePolicy",
+                "autoscaling:DeleteLifecycleHook"
+              ],
+              "Resource" : "*"
+            },
+            {
+              "Effect" : "Allow",
+              "Action": [
+                "sns:CreateTopic",
+                "sns:DeleteTopic",
+                "sns:ListTopics",
+                "sns:Subscribe"
+              ],
+              "Resource" : "*"
+            },
+            {
+              "Effect" : "Allow",
+              "Action" : [
+                "iam:PassRole"
+              ],
+              "Resource" : "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "elasticloadbalancing:CreateLoadBalancer",
+                "elasticloadbalancing:CreateLoadBalancerListeners",
+                "elasticloadbalancing:DeleteLoadBalancer",
+                "elasticloadbalancing:DeleteLoadBalancerListeners",
+                "elasticloadbalancing:ModifyLoadBalancerAttributes",
+                "elasticloadbalancing:SetLoadBalancerPoliciesOfListener"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect" : "Allow",
+              "Action" : [
+                "cloudwatch:ListMetrics",
+                "cloudwatch:GetMetricStatistics",
+                "cloudwatch:PutMetricData",
+                "cloudwatch:PutMetricAlarm",
+                "cloudwatch:DeleteAlarms"
+              ],
+              "Resource" : "*"
+            }
+          ]
+        }
+      }
+    },
+    "IpPolicy" : {
+      "Type" : "AWS::IAM::Policy",
+      "Properties" : {
+        "Groups" : [
+          {
+            "Ref" : "RemoteQueries"
+          }
+        ],
+        "PolicyName": "RemoteQuery",
+        "PolicyDocument" : {
+          "Statement" : [
+            {
+              "Effect" : "Allow",
+              "Action" : [
+                "ec2:DescribeInstances"
+              ],
+              "Resource" : "*"
+            }
+          ]
+        }
+      }
+    },
+    "BackupPolicy" : {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "Groups": [
+          {
+            "Ref": "Backups"
+          }
+        ],
+        "PolicyName": "BackupPolicy",
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:ListBucket",
+                "s3:GetBucketLocation"
+              ],
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:s3:::",
+                    {
+                      "Ref": "S3Backup"
+                    }
+                  ]
+                ]
+              }
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:GetObject",
+                "s3:PutObject",
+                "s3:DeleteObject"
+              ],
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:s3:::",
+                    {
+                      "Ref": "S3Backup"
+                    },
+                    "/*"
+                  ]
+                ]
+              }
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2:DescribeVolumes",
+                "ec2:DescribeTags",
+                "ec2:CreateTags",
+                "ec2:CreateSnapshot",
+                "ec2:DescribeSnapshots"
+              ],
+              "Resource": "*"
+            }
+          ]
+        }
+      }
+    },
+    "UserScratchPolicy": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "Groups": [
+          {
+            "Ref": "Modelers"
+          },
+          {
+            "Ref": "Curators"
+          }
+        ],
+        "PolicyName": "UserScratchPolicy",
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:ListBucket",
+                "s3:GetBucketLocation"
+              ],
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:s3:::",
+                    {
+                      "Ref": "S3UserScratch"
+                    }
+                  ]
+                ]
+              }
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:GetObject",
+                "s3:PutObject",
+                "s3:DeleteObject"
+              ],
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:s3:::",
+                    {
+                      "Ref": "S3UserScratch"
+                    },
+                    "/*"
+                  ]
+                ]
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "Outputs" : {
+    "WebServerInstanceProfileOutput" : { 
+      "Value" : { "Ref" : "WebServerInstanceProfile" },
+      "Description" : "Web Server Instance Profile Id"
+    },
+    "SubmitterAccessKeyOutput" : {
+      "Value" : { "Ref" : "SubmitterAccessKey" },
+      "Description" : "Submitter Access Key Id"
+    },
+    "SubmitterSecretKeyOutput" : {
+      "Value" : { "Fn::GetAtt" : [ "SubmitterAccessKey", "SecretAccessKey" ] },
+      "Description" : "Submitter Secret Access Key"
+    },
+    "ModelerAccessKeyOutput" : {
+      "Value" : { "Ref" : "ModelerAccessKey" },
+      "Description" : "Modeler Access Key Id"
+    },
+    "ModelerSecretKeyOutput" : {
+      "Value" : { "Fn::GetAtt" : [ "ModelerAccessKey", "SecretAccessKey" ] },
+      "Description" : "Modeler Secret Access Key"
+    },
+    "TesterAccessKeyOutput" : {
+      "Value" : { "Ref" : "TesterAccessKey" },
+      "Description" : "Tester Access Key Id"
+    },
+    "TesterSecretKeyOutput" : {
+      "Value" : { "Fn::GetAtt" : [ "TesterAccessKey", "SecretAccessKey" ] },
+      "Description" : "Tester Secret Access Key"
+    },
+    "BackupAccessKeyOutput" : {
+      "Value" : { "Ref" : "BackupAccessKey" },
+      "Description" : "Backup Access Key Id"
+    },
+    "BackupSecretKeyOutput" : {
+      "Value" : { "Fn::GetAtt" : [ "BackupAccessKey", "SecretAccessKey" ] },
+      "Description" : "Backup Secret Access Key"
+    },
+    "ViewerAccessKeyOutput" : {
+      "Value" : { "Ref" : "ViewerAccessKey" },
+      "Description" : "Viewer Access Key Id"
+    },
+    "ViewerSecretKeyOutput" : {
+      "Value" : { "Fn::GetAtt" : [ "ViewerAccessKey", "SecretAccessKey" ] },
+      "Description" : "Viewer Secret Access Key"
+    },
+    "RemoteQueryAccessKeyOutput" : {
+      "Value" : { "Ref" : "RemoteQueryAccessKey" },
+      "Description" : "Remote Query Access Key Id"
+    },
+    "RemoteQuerySecretKeyOutput" : {
+      "Value" : { "Fn::GetAtt" : [ "RemoteQueryAccessKey", "SecretAccessKey" ] },
+      "Description" : "Remote Query Secret Access Key"
+    },
+    "VisualizationPublisherAccessKeyOutput" : {
+      "Value" : { "Ref" : "VisualizationPublisherKey" },
+      "Description" : "VisualizationPublisher Access Key Id"
+    },
+    "VisualizationPublisherSecretKeyOutput" : {
+      "Value" : { "Fn::GetAtt" : [ "VisualizationPublisherKey", "SecretAccessKey" ] },
+      "Description" : "VisualizationPublisher Secret Access Key"
+    },
+    "BasicLambdaFunctionHandlerRoleOutput" : {
+      "Value" : { "Ref" : "BasicLambdaFunctionHandlerRole" },
+      "Description" : "Basic Role for Lambda function handlers"
+    },
+    "BasicLambdaFunctionHandlerRoleARNOutput" : {
+      "Value" : { "Fn::GetAtt" : ["BasicLambdaFunctionHandlerRole", "Arn"] },
+      "Description" : "Arn for the Basic Role for Lambda function handlers"
+    }
+  }
+}

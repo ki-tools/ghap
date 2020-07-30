@@ -1,0 +1,1 @@
+node ../frisby-tests/spec/utils/ghap-delete-grant %1 %2

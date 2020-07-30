@@ -1,0 +1,110 @@
+<div class="content-wrapper clear">
+  <div class="content-row page-header">
+    <div class="content">
+      <h1>Manage Program</h1>
+    </div>
+  </div>
+  <div class="content-row separator-header">
+    <div class="content">
+      <div class="grid gutter">
+        <div class="grid-col col-4-12">
+          <h4>Select Program</h4>
+          <div class="button-cont">
+            <img src="/images/ic-add.png" ng-click="reset(true)">
+          </div>
+        </div>
+        <div class="grid-col col-8-12">
+          <h4></h4>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="content-row white separator-left full-separate-right">
+    <div class="content">
+      <div class="grid gutter">
+        <div class="grid-col col-4-12 separator-padded-right">
+          <div class="list-cont input-cont">
+            <div class="list-cont__header">Programs</div>
+            <filter field="programFilter.name" placeholder="Search by program name"></filter>
+            <ul class="dropdown-list selectable">
+              <li class="dropdown-list__item"
+                  ng-class="{expanded: program.expanded}"
+                  ng-repeat="program in programs | orderBy: 'name' | filter:programFilter track by $index" >
+                <div class="dropdown-list__item__text"
+                    ng-class="{active: program.id == selectedProgram.id}"
+                    ng-click="getGrants(program)">{{program.name}}</div>
+                <ul class="dropdown-list__sub-menu">
+                  <li class="dropdown-list__sub-menu__item"
+                      ng-class="{active: grant.id == selectedGrant.id}"
+                      ng-repeat="grant in program.grants track by $index | orderBy: 'name'">
+                    <div class="dropdown-list__item__text">{{grant.name}}</div>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+            <!-- <bgf-pagination collection="programs"
+                            url="PROGRAMS_URL"
+                            per-page="20"
+                            auto-presets="false"
+                            template-url="views/directives/paginate-anything.html"></bgf-pagination> -->
+          </div>
+        </div>
+        <div class="grid-col col-8-12 separator-padding-left">
+          <form method="POST" ng-submit="add()">
+            <div class="input-cont no-margin">
+              <label class="padded">Program Name</label>
+              <input type="text" class="text-input" ng-model="selectedProgram.name" />
+            </div>
+            <div class="input-cont with-left-margin">
+              <label class="padded">Associated Grants</label>
+
+              <table ng-repeat="grant in grants track by $index" class="without-borders">
+                <tr>
+                  <td ng-click="deleteGrant(grants, $index)" class="table-col-remove" title="Delete Grant"></td>
+                  <td>
+                    <input type="text" class="text-input" ng-model="grants[$index].name"/>
+                  </td>
+                </tr>
+              </table>
+
+
+            </div>
+            <div class="button-cont input-cont with-left-margin color-quaternary weight-600" ng-click="addGrant()">
+              <table class="without-borders">
+                <tr>
+                  <td class="table-col-add"></td>
+                  <td>
+                    <span>Add Additional Grants</span>
+                  </td>
+                </tr>
+              </table>
+            </div>
+
+
+
+            <div class="grid gutter">
+              <div class="grid-col col-4-8">
+                <input type="button" class="full-width pull-right" ng-class="{'submit-button': (grants.length == 0), 'default-button': (grants.length > 0)}"value="DELETE PROGRAM" ng-click="deleteProgram()" ng-show="selectedProgram.id" ng-disabled="grants.length > 0" title="Only programs with no grants can be deleted." />
+              </div>
+              <div class="grid-col col-2-8">
+                <input type="button" class="submit-button full-width" value="CANCEL" ng-click="reset()" />
+              </div>
+              <div class="grid-col col-2-8">
+                <input type="submit" class="submit-button full-width" value="SAVE" ng-disabled="selectedProgram.name.trim().length == 0" />
+              </div>
+            </div>
+            <br>
+            <div  class="grid">
+              <div class="grid-col col-2-2">
+                <div ng-show="errors.length > 0" class="error-message-cont"><ul>
+                  <li ng-repeat="error in errors">{{error}}</li>
+                </ul></div><div ng-show="success" class="success-message-cont align-right" ng-bind-html="success"></div>
+              </div>
+            </div>
+
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

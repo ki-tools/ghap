@@ -1,0 +1,143 @@
+<div class="content-wrapper clear">
+  <div class="content-row page-header">
+    <div class="content">
+      <h1>Edit Account</h1>
+    </div>
+  </div>
+  <div class="content-row separator-header">
+    <div class="content">
+      <div class="grid gutter">
+        <div class="grid-col col-4-12">
+          <h4>User Account</h4>
+          <div class="button-cont">
+            <img src="/images/ic-add.png" ng-click="go('/user-management/create-account')">
+          </div>
+        </div>
+        <div class="grid-col col-8-12">
+          <h4>User Information</h4>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="content-row white separator-left full-separate-right padded">
+    <div class="content">
+      <div class="grid gutter">
+        <div class="grid-col col-4-12 separator-padded-right">
+          <div class="list-cont">
+            <div class="list-cont__header">Users</div>
+            <filter field="userFilter.name" placeholder="Search by user name"></filter>
+            <ul class="list selectable">
+              <li class="list__item"
+                  ng-class="{active: user.dn == selectedUser.dn}"
+                  ng-repeat="user in users | filter:userFilter track by $index"
+                  ng-click="get(user, $index)">
+                <span class="list__item__text">{{user.name}}</span>
+              </li>
+            </ul>
+            <!-- <bgf-pagination collection="users"
+                            url="USERS_URL"
+                            per-page="20"
+                            auto-presets="false"
+                            template-url="views/directives/paginate-anything.html"></bgf-pagination> -->
+          </div>
+        </div>
+        <div class="grid-col col-8-12 separator-padding-left">
+          <div class="grid gutter">
+            <div class="grid-col col-1-2">
+              <div class="input-cont no-margin">
+                <label>Username</label>
+                <input type="text" class="text-input" name="username" ng-model="selectedUser.name" disabled="disabled" />
+              </div>
+            </div>
+          </div>
+          <div class="grid gutter">
+            <div class="grid-col col-4-8">
+              <div class="input-cont">
+                <label>First Name</label>
+                <input type="text" class="text-input" name="firstName" ng-model="selectedUser.firstName" />
+              </div>
+            </div>
+            <div class="grid-col col-4-8">
+              <div class="input-cont">
+                <label>Last Name</label>
+                <input type="text" class="text-input" name="lastName" ng-model="selectedUser.lastName" />
+              </div>
+            </div>
+          </div>
+          <div class="grid gutter">
+            <div class="grid-col col-5-8">
+              <div class="input-cont no-margin">
+                <label>Email</label>
+                <input type="email" class="text-input" name="email" ng-model="selectedUser.email" />
+              </div>
+            </div>
+          </div>
+          <div class="input-cont">
+            <label>Account Status</label>
+            <div class="input-cont__inline-cont">
+              <label>
+                <input type="radio" name="accountStatus" ng-model="selectedUser.disabled" ng-value="false" ng-checked="!selectedUser.disabled">
+                <span>Active</span>
+              </label>
+              <label>
+                <input type="radio" name="accountStatus" ng-model="selectedUser.disabled" ng-value="true" ng-checked="selectedUser.disabled">
+                <span>Disabled</span>
+              </label>
+            </div>
+          </div>
+          <div class="input-cont">
+            <label class="box-cont blue">
+              <input type="checkbox" ng-model="selectedUser.generatePassword" />
+              <span>Generate Password on Update</span>
+            </label>
+          </div>
+          <!--
+          <div class="input-cont">
+            <label>Personal Storage</label>
+            <div class="input-cont__inline-cont">
+              <label class="box-cont blue">
+                <input type="checkbox" ng-model="selectedUser.storage" ng-change="changeStorage()">
+                <span>User Volume</span>
+              </label>
+            </div>
+          </div>
+          -->
+          <div ng-hide="selectedUser.generatePassword">
+            <div class="input-cont" ng-if="currentUser.dn == selectedUser.dn">
+              <label>Current Password</label>
+              <input class="text-input" type="password" name="currentPassword" ng-model="selectedUser.currentPassword">
+            </div>
+            <div class="input-cont">
+              <label>Password</label>
+              <input class="text-input" type="password" name="password" ng-model="selectedUser.password">
+            </div>
+            <div class="input-cont">
+              <label>Password confirmation</label>
+              <input class="text-input" type="password" name="passwordConfirmation" ng-model="selectedUser.passwordConfirmation">
+            </div>
+          </div>
+          <div class="input-cont">
+            <label class="box-cont blue">
+              <input type="checkbox" name="notifyByEmail" ng-model="selectedUser.notifyByEmail">
+              <span>Send email to user upon account update</span>
+            </label>
+          </div>
+          <div class="grid gutter">
+            <div class="grid-col col-2-8">
+              <input type="submit" class="submit-button" value="UPDATE" ng-click="update()" />
+            </div>
+            <div class="grid-col col-2-8">
+              <input type="submit" class="default-button" value="DELETE" ng-click="delete()" />
+            </div>
+            <div class="grid-col col-4-8 right-side-message">
+              <div ng-show="errors.length > 0" class="error-message-cont"><ul>
+                <li ng-repeat="error in errors">{{error}}</li>
+              </ul></div>
+              <div ng-show="success" class="success-message-cont" ng-bind-html="success"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

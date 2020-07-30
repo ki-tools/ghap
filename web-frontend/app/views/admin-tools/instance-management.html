@@ -1,0 +1,93 @@
+<div class="content-wrapper clear">
+  <div class="content-row page-header">
+    <div class="content">
+      <div class="grid gutter">
+        <div class="grid-col col-12-12">
+          <h1>Instance Management</h1>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="content-row">
+    <div class="content">
+      <div class="grid gutter">
+        <div class="grid-col col-12-12">
+          <table class="top-right-table no-select" ng-init="predicate = 'user.name';reverse = false">
+            <thead>
+              <tr>
+                <th colspan="9">
+                  <div class="filter add-rigth-margin grid-col col-4-12">
+                    <div class="input-cont no-margin full-width">
+                      <input type="search" class="text-input" placeholder="Search by User" ng-model="search.user.name">
+                    </div>
+                  </div>
+                  <div class="filter grid-col col-4-12">
+                    <div class="input-cont no-margin full-width">
+                      <input type="search" class="text-input" placeholder="Search by Type" ng-model="search.resources.main.instanceOsType">
+                    </div>
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th></th>
+                <th>
+                  <sorter predicate="predicate" reverse="reverse" attr="user.name" class="pointer color-quaternary">User</sorter>
+                </th>
+                <th>Type</th>
+                <th>Node</th>
+                <th>IP</th>
+                <th class="align-center">CPU</th>
+                <th width="100px">
+                  <sorter predicate="predicate" reverse="reverse" attr="resources.main.status" class="pointer color-quaternary">Status</sorter>
+                </th>
+                <th>Pem File</th>
+                <th>
+                  <sorter predicate="predicate" reverse="reverse" attr="resources.main.launchTime" class="pointer color-quaternary">Date Created</sorter>
+                </th>
+              </tr>
+              <tr ng-if="!isLoaded">
+                <td colspan="9">
+                  <spinner></spinner>
+                </td>
+              </tr>
+              <tr ng-repeat="stack in stacks.concat(pendingStacks) | filter:search | orderBy:predicate:reverse">
+                <td ng-click="terminate(stack)"
+                    class="table-col-remove"
+                    title="Decomission Virtual Environment"></td>
+                <td ng-bind='stack.user.name'></td>
+                <!--<td ng-bind='stack.resources.main.instanceOsType'></td>-->
+                <td title="{{stack.resources.main.imageId}}">
+                  <span ng-bind='stack.resources.main.instanceOsType'></span>
+                  <span ng-if="isVPG(stack)"> VPG</span>
+                </td>
+                <td ng-bind='stack.resources.main.instanceId'></td>
+                <td>
+                  <a ng-show="rdps[stack.resources.main.instanceId]"
+                     class="underlined color-quaternary"
+                     ng-href="{{rdps[stack.resources.main.instanceId]}}">{{stack.resources.main.address}}</a>
+                  <span ng-hide="rdps[stack.resources.main.instanceId]">{{stack.resources.main.address}}</span>
+                </td>
+                <td class="align-center"
+                    ng-bind='stack.resources.main.coreCount'>
+                </td>
+                <td class="table-col-pause stack-status">
+                  <div class="ios-toggle"
+                       ng-class="{on: isOn(stack.resources.main), disabled: isDisabled(stack.resources.main)}"
+                       ng-click="toggleStack(stack)">
+                    <div class="toggle"></div>
+                  </div>&nbsp;&nbsp;<spam ng-class="{muted: !isOn(stack.resources.main) || isDisabled(stack.resources.main)}">{{stack.resources.main.status}}</spam>
+                </td>
+                <td>
+                  <a ng-href="{{stack.pemUrl()}}">Download</a>
+                </td>
+                <td ng-bind="stack.resources.main.launchTime | date:'short'"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,80 @@
+{
+  "Description": "Cloudformation Stack for Setup of Cost Control Mechanisms for the provisioned resources in GHAP",
+
+  "Parameters": {
+    "IdleResourcesSNSTopicArn": {
+      "Description": "The ARN to the SNS Topic that can receive notification regarding Idle Resources",
+      "Default": "unknown",
+      "Type": "String"
+    },
+    "ProvisionedInstanceId": {
+      "Description": "The Instance Id of the Provisioned EC2 Instance",
+      "Type": "String"
+    },
+
+    "InactivityCPUThreshold": {
+      "Description": "Threshhold for cloud watch to deactivate instance",
+      "Type": "Number",
+      "Default" : 3.0
+    },
+    "InactivityCPUPeriodSeconds": {
+      "Description": "Period for calculate statistic in seconds",
+      "Type": "Number",
+      "Default" : 900
+    }
+
+  },
+
+  "Conditions": {
+    "AttachAlarmForIdleResources": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "IdleResourcesSNSTopicArn"
+            },
+            "Unknown"
+          ]
+        }
+      ]
+    }
+  },
+
+  "Resources" : {
+    "CloudWatchIdleInstanceAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Condition" : "AttachAlarmForIdleResources",
+      "Properties": {
+        "ActionsEnabled": true,
+        "AlarmActions": [
+          {
+            "Ref": "IdleResourcesSNSTopicArn"
+          }
+        ],
+        "OKActions": [
+          {
+            "Ref": "IdleResourcesSNSTopicArn"
+          }
+        ],
+        "AlarmDescription": "Send notifications regarding Idle Instances provisioned by Analysts",
+        "Dimensions": [
+          {
+            "Name": "InstanceId",
+            "Value": {
+              "Ref": "ProvisionedInstanceId"
+            }
+          }
+        ],
+        "MetricName": "CPUUtilization",
+        "Namespace": "AWS/EC2",
+        "Statistic": "Average",
+        "Period": { "Ref" : "InactivityCPUPeriodSeconds"},
+        "EvaluationPeriods": 1,
+        "ComparisonOperator": "LessThanOrEqualToThreshold",
+        "Threshold": {"Ref" : "InactivityCPUThreshold"}
+      }
+    }
+
+  }
+
+}

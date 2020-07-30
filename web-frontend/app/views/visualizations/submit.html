@@ -1,0 +1,120 @@
+<div class="visualizations-submit">
+  <div class="content-row padded align-center">
+    <div class="content">
+      <div class="grid">
+        <div class="grid-col col-12-12">
+          <h1>Application Submission</h1>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content-row">
+    <div class="content">
+      <div class="grid">
+        <div class="grid-col col-2-12"></div>
+        <div class="grid-col col-8-12">
+          <ol>
+            <li>Ensure the Shiny application is working on your GHAP computing environment.</li>
+            <li>Once verified, call <strong>shinyghap::bundle_app()</strong>, which is available in R on your computing environment. See <strong>?shinyghap::bundle_app</strong> for more details. For example:
+              <pre>
+  shinyghap::bundle_app(app_dir = “path/to/shiny/app”, 
+    name=“My App”, 
+    description = “A test application”, 
+    author = “john doe &lt;john.doe@email.com&gt; “, 
+    keywords = c(“growth”, “modeling”), 
+    project = “hbgd”, 
+    grant = “ki1000109”, 
+    thumbnail = “/path/to/app/thumbnail.png")
+              </pre>
+            </li>
+            <li>After testing the bundled app to ensure it continues to function as expected, submit the .tar.gz file that is output from bundle_app via the button below.</li>
+            <li>Once the application’s environment is set up and R package dependencies are installed, your application will be available from the Visualizations View Applications page.</li>
+          </ol>
+          <h3 class="align-center">Please upload your data files below.</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="content-row white">
+    <div class="content">
+      <div class="grid">
+        <div class="grid-col col-2-12"></div>
+        <div class="grid-col col-8-12 align-center">
+
+          <form name="metaForm" sf-schema="schema" sf-form="form" sf-model="model">
+          </form>
+
+          <div class="btn-file file-upload">
+            <div class="submit-button">SELECT FILES</div>
+            <input nv-file-select
+                   type="file"
+                   uploader="appUploader"
+                   multiple ng-if="appUploader.queueLimit > 1"/>
+            <input nv-file-select
+                   type="file"
+                   uploader="appUploader"
+                   ng-if="appUploader.queueLimit == 1"/>
+          </div>
+
+          <table class="files-progress"
+                 ng-if="appUploader.queue.length > 0">
+            <tbody>
+              <tr ng-repeat="item in appUploader.queue">
+                <td><strong>{{ item.file.name }}</strong></td>
+                <td ng-show="appUploader.isHTML5"
+                    nowrap>{{ item.file.size/1024/1024 | number:2 }} MB</td>
+                <td ng-show="appUploader.isHTML5"
+                    width="50%">
+                  <div class="progress"
+                       style="margin-bottom: 0;">
+                    <div class="progress-bar"
+                         role="progressbar"
+                         ng-style="{ 'width': item.progress + '%' }"></div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3 ng-show="appUploaded && !errors.length"
+              class="color-primary upload-message">
+            <img class="checkmark"
+                 src="/images/ic-checkmark.png" />Upload completed successfully!
+          </h3>
+
+          <div ng-show="errors.length" class="upload-message">
+            <h3>Upload Summary</h3>
+
+            <p>Please review below the summary of the selected files upload.</p>
+
+            <ul>
+              <li ng-repeat="status in success">
+                <div class="header-line"><em ng-bind="status.item.file.name"></em> - <em >Success</em></div>
+              </li>
+            </ul>
+
+            <ul>
+              <li ng-repeat="status in errors">
+                <div class="header-line"><em ng-bind="status.item.file.name"></em> - <em class="error-message-cont">Failed</em></div>
+                <dl>
+                  <dd ng-repeat="msg in status.errors" ng-bind="msg"></dd>
+                </dl>
+              </li>
+            </ul>
+
+          </div>
+
+          <div class="form-group schema-form-submit ">
+            <br/>
+            <input type="submit" class="btn btn-primary" value="Save" style="" ng-click="onSubmit(metaForm)">
+            <p class="help-block error-message-cont center" ng-hide="metaForm.$valid">Meta data is invalid. Check errors above.</p>
+          </div>
+
+        </div>
+        <div class="grid-col col-2-12"></div>
+      </div>
+    </div>
+  </div>
+
+</div>

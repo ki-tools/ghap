@@ -1,0 +1,821 @@
+{
+  "Conditions": {
+    "AttachUserStorage": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "UserVolumeId"
+            },
+            "UNSET"
+          ]
+        }
+      ]
+    }
+  },
+  "Description": "Cloudformation Stack for Virtual Private Grid for Analysts",
+  "Mappings": {
+    "AvailabilityZone": {
+      "A": {
+        "ZONEID": "us-east-1a"
+      },
+      "B": {
+        "ZONEID": "us-east-1c"
+      }
+    },
+    "RegionMap": {
+      "us-east-1": {
+        "AMI": "ami-36bdaf5e"
+      },
+      "us-west-2": {
+        "AMI": "ami-5595a665"
+      }
+    }
+  },
+  "Parameters": {
+    "Domain": {
+      "AllowedValues": [
+        "ghap.io",
+        "dev.ghap.io",
+        "qa.ghap.io"
+      ],
+      "ConstraintDescription": "Must specify ghap.io or dev.ghap.io.",
+      "Default": "dev.ghap.io",
+      "Description": "The domain or subdomain to be used.",
+      "Type": "String"
+    },
+    "GhapNatSecurityGroup": {
+      "Default": "sg-7c022118",
+      "Description": "Security Id for Nat Security Group",
+      "Type": "String"
+    },
+    "GhapPrivateSubnetA": {
+      "Default": "subnet-688a1131",
+      "Description": "Private Subnet Id for Availability Zone",
+      "Type": "String"
+    },
+    "GhapPrivateSubnetB": {
+      "Default": "subnet-b05fdd9b",
+      "Description": "Private Subnet Id for Availability Zone",
+      "Type": "String"
+    },
+    "GhapPublicSubnetA": {
+      "Default": "subnet-6b8a1132",
+      "Description": "Public Subnet Id for Availability Zone",
+      "Type": "String"
+    },
+    "GhapPublicSubnetB": {
+      "Default": "subnet-b75fdd9c",
+      "Description": "Public Subnet Id for Availability Zone",
+      "Type": "String"
+    },
+    "GhapVPC": {
+      "ConstraintDescription": "The VPC Id",
+      "Default": "vpc-1dbc8378",
+      "Description": "The VPC Id",
+      "Type": "String"
+    },
+    "KeyName": {
+      "ConstraintDescription": "Must be the name of an existing EC2 KeyPair.",
+      "Description": "EC2 Key Pair to allow SSH access to the instance",
+      "Type": "AWS::EC2::KeyPair::KeyName"
+    },
+    "ServerAccess": {
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "must be a valid CIDR range of the form x.x.x.x/x.",
+      "Default": "0.0.0.0/0",
+      "Description": "CIDR IP range allowed to login to the NAT instance",
+      "MaxLength": "18",
+      "MinLength": "9",
+      "Type": "String"
+    },
+    "UniqueId": {
+      "Description": "UUID from Stash for the User",
+      "Type": "String"
+    },
+    "Username": {
+      "Description": "The Username of the User",
+      "Type": "String",
+      "Default" : "Unknown"
+    },
+    "UserVolumeId": {
+      "Default": "UNSET",
+      "Description": "The Volume Id to attach to the instance",
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "ComputeHead": {
+      "CreationPolicy": {
+        "ResourceSignal": {
+          "Timeout": "PT30M"
+        }
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Init": {
+          "configSets": {
+            "InstallAndRun": [
+              "configure_computehead"
+            ]
+          },
+          "configure_computehead": {
+            "commands": {
+              "01-updateservername": {
+                "command": "hostname > /var/lib/torque/server_name",
+                "ignoreErrors": "false"
+              },
+              "02-updatemomconfig": {
+                "command": "echo \"\\$pbsserver computehead\" > /var/lib/torque/mom_priv/config",
+                "ignoreErrors": "false"
+              },
+              "03-updatefstab": {
+                "command": "echo \"/dev/xvdq /torquefs ext4 defaults 0 0\" >> /etc/fstab",
+                "ignoreErrors": "false"
+              },
+              "04-updatesysconfignfs": {
+                "command": "echo \"LOCKD_TCPPORT=32803\" >> /etc/sysconfig/nfs && echo \"LOCKD_UDPPORT=32769\" >> /etc/sysconfig/nfs && echo \"MOUNTD_PORT=892\" >> /etc/sysconfig/nfs",
+                "ignoreErrors": "false"
+              },
+              "05-createmungekey": {
+                "command": "create-munge-key",
+                "ignoreErrors": "false"
+              },
+              "06-update": {
+                "command": "/bin/bash /tmp/update.sh\n",
+                "ignoreErrors": "true"
+              }
+            },
+            "files": {
+              "/etc/sysconfig/network": {
+                "content": "NETWORKING=yes\nNETWORKING_IPV6=no\nHOSTNAME=computehead\nNISDOMAIN=dynamic.grid\n"
+              },
+              "/tmp/update.sh": {
+                "content": {
+                  "Fn::Join": [
+                    "\n",
+                    [
+                      "#!/bin/bash",
+                      "usermod --shell /bin/bash analyst",
+                      "chown -R analyst.users /analyst",
+                      "echo analyst | passwd --stdin analyst",
+                      "cat /etc/ssh/sshd_config | sed s/PasswordAuthentication\\ no/PasswordAuthentication\\ yes/g > /tmp/sshd_config",
+                      "mv /tmp/sshd_config /etc/ssh/sshd_config",
+                      "service sshd restart"
+                    ]
+                  ]
+                }
+              }
+            },
+            "services": {
+              "sysvinit": {
+                "maui": {
+                  "enabled": "true",
+                  "ensureRunning": "true"
+                },
+                "munge": {
+                  "enabled": "true",
+                  "ensureRunning": "true"
+                },
+                "nfs": {
+                  "enabled": "true",
+                  "ensureRunning": "true"
+                },
+                "nfslock": {
+                  "enabled": "true",
+                  "ensureRunning": "true"
+                },
+                "pbs_mom": {
+                  "enabled": "true",
+                  "ensureRunning": "true"
+                },
+                "yppasswdd": {
+                  "enabled": "true",
+                  "ensureRunning": "true"
+                },
+                "ypserv": {
+                  "enabled": "true",
+                  "ensureRunning": "true"
+                }
+              }
+            },
+            "users": {
+              "analyst": {
+                "groups": [
+                  "users"
+                ],
+                "homeDir": "/analyst",
+                "uid": "1000"
+              }
+            }
+          }
+        }
+      },
+      "Properties": {
+        "AvailabilityZone": {
+          "Fn::FindInMap": [
+            "AvailabilityZone",
+            "A",
+            "ZONEID"
+          ]
+        },
+        "ImageId": {
+          "Fn::FindInMap": [
+            "RegionMap",
+            {
+              "Ref": "AWS::Region"
+            },
+            "AMI"
+          ]
+        },
+        "InstanceType": "m3.large",
+        "KeyName": {
+          "Ref": "KeyName"
+        },
+        "NetworkInterfaces": [
+          {
+            "AssociatePublicIpAddress": "true",
+            "DeleteOnTermination": true,
+            "DeviceIndex": "0",
+            "GroupSet": [
+              {
+                "Ref": "ComputeSecurityGroup"
+              }
+            ],
+            "SubnetId": {
+              "Ref": "GhapPublicSubnetA"
+            }
+          }
+        ],
+        "SourceDestCheck": false,
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Linux Compute Head Instance"
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash\n",
+                "hostname computehead\n",
+                "echo `ifconfig eth0 | grep \"inet addr\" | awk -F: '{print $2}' | awk '{print $1}'` `hostname` >> /etc/hosts\n",
+                "cp ~centos/.ssh/authorized_keys ~root/.ssh/authorized_keys\n",
+                "cfn-init -s ",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                "         -r ComputeHead ",
+                "         --region ",
+                {
+                  "Ref": "AWS::Region"
+                },
+                "         -c InstallAndRun \n",
+                "trqauthd\n",
+                "service pbs_server start\n",
+                "echo computehead np=1 >> /var/lib/torque/server_priv/nodes\n",
+                "/usr/bin/qmgr -c \"create queue ghap queue_type=execution\"\n",
+                "/usr/bin/qmgr -c \"set queue ghap started=true\"\n",
+                "/usr/bin/qmgr -c \"set queue ghap enabled=true\"\n",
+                "/usr/bin/qmgr -c \"set queue ghap resources_default.nodes=1\"\n",
+                "/usr/bin/qmgr -c \"set queue ghap resources_default.walltime=3600\"\n",
+                "/usr/bin/qmgr -c \"set server default_queue=ghap\"\n",
+                "/usr/bin/qmgr -c \"set server acl_hosts = computehead\"\n",
+                "/usr/bin/qmgr -c \"set server scheduling=true\"\n",
+                "/usr/bin/qmgr -c \"set server display_job_server_suffix=false\"\n",
+                "echo /torquefs *\\(rw,sync,no_root_squash,no_subtree_check\\) >> /etc/exports\n",
+                "exportfs -a\n",
+                "mkdir /analyst\n",
+                "cfn-signal -e $? ",
+                "           --stack=",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                "           --resource=ComputeHead \n"
+              ]
+            ]
+          }
+        }
+      },
+      "Type": "AWS::EC2::Instance"
+    },
+    "ComputeNodeOne": {
+      "CreationPolicy": {
+        "ResourceSignal": {
+          "Timeout": "PT30M"
+        }
+      },
+      "DependsOn": [
+        "ComputeHead",
+        "ComputeNodeTwo"
+      ],
+      "Metadata": {
+        "AWS::CloudFormation::Init": {
+          "configSets": {
+            "InstallAndRun": [
+              "configure_computenode"
+            ]
+          },
+          "configure_computenode": {
+            "commands": {
+              "01-createmungekey": {
+                "command": "create-munge-key",
+                "ignoreErrors": "false"
+              },
+              "02-updateservername": {
+                "command": "echo computehead > /var/lib/torque/server_name",
+                "ignoreErrors": "false"
+              },
+              "03-updatemomconfig": {
+                "command": "echo \"\\$pbsserver computehead\" > /var/lib/torque/mom_priv/config",
+                "ignoreErrors": "false"
+              },
+              "04-updatefstab": {
+                "command": "echo \"computehead:/torquefs\t/torquefs\tnfs\trsize=8192,wsize=8192,timeo=14,intr\n\" >> /etc/fstab",
+                "ignoreErrors": "false"
+              }
+            },
+            "files": {
+              "/etc/sysconfig/network": {
+                "content": "NETWORKING=yes\nNETWORKING_IPV6=no\nHOSTNAME=computenodeone\n"
+              }
+            },
+            "services": {
+              "sysvinit": {
+                "ip6tables": {
+                  "enabled": "false",
+                  "ensureRunning": "false"
+                },
+                "iptables": {
+                  "enabled": "false",
+                  "ensureRunning": "false"
+                },
+                "munge": {
+                  "enabled": "true",
+                  "ensureRunning": "true"
+                },
+                "pbs_mom": {
+                  "enabled": "true",
+                  "ensureRunning": "true"
+                }
+              }
+            }
+          }
+        },
+        "files": {
+          "/home/centos/linuxvpg.pem": {
+            "content": {
+              "Fn::Join": [
+                "",
+                [
+                  "-----BEGIN RSA PRIVATE KEY-----\n",
+                  " Some cert goes here  \n",
+                  "-----END RSA PRIVATE KEY-----\n"
+                ]
+              ]
+            },
+            "group": "root",
+            "mode": "000400",
+            "owner": "root"
+          }
+        }
+      },
+      "Properties": {
+        "AvailabilityZone": {
+          "Fn::FindInMap": [
+            "AvailabilityZone",
+            "A",
+            "ZONEID"
+          ]
+        },
+        "ImageId": {
+          "Fn::FindInMap": [
+            "RegionMap",
+            {
+              "Ref": "AWS::Region"
+            },
+            "AMI"
+          ]
+        },
+        "InstanceType": "c4.4xlarge",
+        "KeyName": {
+          "Ref": "KeyName"
+        },
+        "NetworkInterfaces": [
+          {
+            "AssociatePublicIpAddress": "true",
+            "DeleteOnTermination": true,
+            "DeviceIndex": "0",
+            "GroupSet": [
+              {
+                "Ref": "ComputeSecurityGroup"
+              }
+            ],
+            "SubnetId": {
+              "Ref": "GhapPublicSubnetA"
+            }
+          }
+        ],
+        "SourceDestCheck": false,
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Linux Compute Node Instance #1"
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash\n",
+                "hostname computenodeone\n",
+                "echo `ifconfig eth0 | grep \"inet addr\" | awk -F: '{print $2}' | awk '{print $1}'` `hostname` >> /etc/hosts\n",
+                "echo ",
+                {
+                  "Fn::GetAtt": [
+                    "ComputeHead",
+                    "PrivateIp"
+                  ]
+                },
+                " ",
+                " computehead >> /etc/hosts\n",
+                "\n",
+                "cfn-init -s ",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                "         -r ComputeNodeOne ",
+                "         --region ",
+                {
+                  "Ref": "AWS::Region"
+                },
+                "         -c InstallAndRun \n",
+                "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i /home/centos/linuxvpg.pem root@",
+                {
+                  "Fn::GetAtt": [
+                    "ComputeHead",
+                    "PrivateIp"
+                  ]
+                },
+                " \"echo ",
+                " `ifconfig eth0 | grep \"inet addr\" | awk -F: '{print $2}' | awk '{print $1}'` `hostname` >> /etc/hosts\"\n",
+                "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i /home/centos/linuxvpg.pem root@",
+                {
+                  "Fn::GetAtt": [
+                    "ComputeHead",
+                    "PrivateIp"
+                  ]
+                },
+                " \"echo ",
+                " `hostname` >> /var/lib/torque/server_priv/nodes\"\n",
+                "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i /home/centos/linuxvpg.pem root@",
+                {
+                  "Fn::GetAtt": [
+                    "ComputeHead",
+                    "PrivateIp"
+                  ]
+                },
+                " \"service pbs_server stop\"\n",
+                "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i /home/centos/linuxvpg.pem root@",
+                {
+                  "Fn::GetAtt": [
+                    "ComputeHead",
+                    "PrivateIp"
+                  ]
+                },
+                " \"service pbs_server start\"\n",
+                "mount ",
+                {
+                  "Fn::GetAtt": [
+                    "ComputeHead",
+                    "PrivateIp"
+                  ]
+                },
+                ":/torquefs /torquefs \n",
+                "service pbs_mom restart \n",
+                "cfn-signal -e $? ",
+                "           --stack=",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                "           --resource=ComputeNodeOne \n"
+              ]
+            ]
+          }
+        }
+      },
+      "Type": "AWS::EC2::Instance"
+    },
+    "ComputeNodeTwo": {
+      "CreationPolicy": {
+        "ResourceSignal": {
+          "Timeout": "PT30M"
+        }
+      },
+      "DependsOn": [
+        "ComputeHead"
+      ],
+      "Metadata": {
+        "AWS::CloudFormation::Init": {
+          "configSets": {
+            "InstallAndRun": [
+              "configure_computenode"
+            ]
+          },
+          "configure_computenode": {
+            "commands": {
+              "01-createmungekey": {
+                "command": "create-munge-key",
+                "ignoreErrors": "false"
+              },
+              "02-updateservername": {
+                "command": "echo computehead > /var/lib/torque/server_name",
+                "ignoreErrors": "false"
+              },
+              "03-updatemomconfig": {
+                "command": "echo \"\\$pbsserver computehead\" > /var/lib/torque/mom_priv/config",
+                "ignoreErrors": "false"
+              },
+              "04-updatefstab": {
+                "command": "echo \"computehead:/torquefs\t/torquefs\tnfs\trsize=8192,wsize=8192,timeo=14,intr\n\" >> /etc/fstab",
+                "ignoreErrors": "false"
+              }
+            },
+            "files": {
+              "/etc/sysconfig/network": {
+                "content": "NETWORKING=yes\nNETWORKING_IPV6=no\nHOSTNAME=computenodetwo\n"
+              }
+            },
+            "services": {
+              "sysvinit": {
+                "ip6tables": {
+                  "enabled": "false",
+                  "ensureRunning": "false"
+                },
+                "iptables": {
+                  "enabled": "false",
+                  "ensureRunning": "false"
+                },
+                "munge": {
+                  "enabled": "true",
+                  "ensureRunning": "true"
+                },
+                "pbs_mom": {
+                  "enabled": "true",
+                  "ensureRunning": "true"
+                }
+              }
+            }
+          }
+        },
+        "files": {
+          "/home/centos/linuxvpg.pem": {
+            "content": {
+              "Fn::Join": [
+                "",
+                [
+                  "-----BEGIN RSA PRIVATE KEY-----\n",
+                  " Some cert goes here \n",
+                  "-----END RSA PRIVATE KEY-----\n"
+                ]
+              ]
+            },
+            "group": "root",
+            "mode": "000400",
+            "owner": "root"
+          }
+        }
+      },
+      "Properties": {
+        "AvailabilityZone": {
+          "Fn::FindInMap": [
+            "AvailabilityZone",
+            "A",
+            "ZONEID"
+          ]
+        },
+        "ImageId": {
+          "Fn::FindInMap": [
+            "RegionMap",
+            {
+              "Ref": "AWS::Region"
+            },
+            "AMI"
+          ]
+        },
+        "InstanceType": "c4.4xlarge",
+        "KeyName": {
+          "Ref": "KeyName"
+        },
+        "NetworkInterfaces": [
+          {
+            "AssociatePublicIpAddress": "true",
+            "DeleteOnTermination": true,
+            "DeviceIndex": "0",
+            "GroupSet": [
+              {
+                "Ref": "ComputeSecurityGroup"
+              }
+            ],
+            "SubnetId": {
+              "Ref": "GhapPublicSubnetA"
+            }
+          }
+        ],
+        "SourceDestCheck": false,
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Linux Compute Node Instance #2"
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash\n",
+                "hostname computenodetwo\n",
+                "echo `ifconfig eth0 | grep \"inet addr\" | awk -F: '{print $2}' | awk '{print $1}'` `hostname` >> /etc/hosts\n",
+                "echo ",
+                {
+                  "Fn::GetAtt": [
+                    "ComputeHead",
+                    "PrivateIp"
+                  ]
+                },
+                " ",
+                " computehead >> /etc/hosts\n",
+                "\n",
+                "cfn-init -s ",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                "         -r ComputeNodeTwo ",
+                "         --region ",
+                {
+                  "Ref": "AWS::Region"
+                },
+                "         -c InstallAndRun \n",
+                "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i /home/centos/linuxvpg.pem root@",
+                {
+                  "Fn::GetAtt": [
+                    "ComputeHead",
+                    "PrivateIp"
+                  ]
+                },
+                " \"echo ",
+                " `ifconfig eth0 | grep \"inet addr\" | awk -F: '{print $2}' | awk '{print $1}'` `hostname` >> /etc/hosts\"\n",
+                "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i /home/centos/linuxvpg.pem root@",
+                {
+                  "Fn::GetAtt": [
+                    "ComputeHead",
+                    "PrivateIp"
+                  ]
+                },
+                " \"echo ",
+                " `hostname` >> /var/lib/torque/server_priv/nodes\"\n",
+                "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i /home/centos/linuxvpg.pem root@",
+                {
+                  "Fn::GetAtt": [
+                    "ComputeHead",
+                    "PrivateIp"
+                  ]
+                },
+                " \"service pbs_server stop\"\n",
+                "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i /home/centos/linuxvpg.pem root@",
+                {
+                  "Fn::GetAtt": [
+                    "ComputeHead",
+                    "PrivateIp"
+                  ]
+                },
+                " \"service pbs_server start\"\n",
+                "mount ",
+                {
+                  "Fn::GetAtt": [
+                    "ComputeHead",
+                    "PrivateIp"
+                  ]
+                },
+                ":/torquefs /torquefs \n",
+                "service pbs_mom restart \n",
+                "cfn-signal -e $? ",
+                "           --stack=",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                "           --resource=ComputeNodeTwo \n"
+              ]
+            ]
+          }
+        }
+      },
+      "Type": "AWS::EC2::Instance"
+    },
+    "ComputeSecurityGroup": {
+      "Properties": {
+        "GroupDescription": "Compute Head Security Group",
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": {
+              "Ref": "ServerAccess"
+            },
+            "FromPort": "22",
+            "IpProtocol": "tcp",
+            "ToPort": "22"
+          },
+          {
+            "CidrIp": {
+              "Ref": "ServerAccess"
+            },
+            "FromPort": "80",
+            "IpProtocol": "tcp",
+            "ToPort": "80"
+          },
+          {
+            "CidrIp": {
+              "Ref": "ServerAccess"
+            },
+            "FromPort": "443",
+            "IpProtocol": "tcp",
+            "ToPort": "443"
+          },
+          {
+            "CidrIp": {
+              "Ref": "ServerAccess"
+            },
+            "FromPort": "15001",
+            "IpProtocol": "tcp",
+            "ToPort": "15001"
+          },
+          {
+            "CidrIp": {
+              "Ref": "ServerAccess"
+            },
+            "FromPort": "15002",
+            "IpProtocol": "tcp",
+            "ToPort": "15002"
+          },
+          {
+            "CidrIp": {
+              "Ref": "ServerAccess"
+            },
+            "FromPort": "15003",
+            "IpProtocol": "tcp",
+            "ToPort": "15003"
+          },
+          {
+            "CidrIp": {
+              "Ref": "ServerAccess"
+            },
+            "FromPort": "111",
+            "IpProtocol": "tcp",
+            "ToPort": "111"
+          },
+          {
+            "CidrIp": {
+              "Ref": "ServerAccess"
+            },
+            "FromPort": "892",
+            "IpProtocol": "tcp",
+            "ToPort": "892"
+          },
+          {
+            "CidrIp": {
+              "Ref": "ServerAccess"
+            },
+            "FromPort": "2049",
+            "IpProtocol": "tcp",
+            "ToPort": "2049"
+          },
+          {
+            "CidrIp": "10.10.0.0/16",
+            "FromPort": "53",
+            "IpProtocol": "udp",
+            "ToPort": "53"
+          }
+        ],
+        "VpcId": {
+          "Ref": "GhapVPC"
+        }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "UserVolumeAttachment": {
+      "Condition": "AttachUserStorage",
+      "Properties": {
+        "Device": "/dev/xvdf",
+        "InstanceId": {
+          "Ref": "ComputeHead"
+        },
+        "VolumeId": {
+          "Ref": "UserVolumeId"
+        }
+      },
+      "Type": "AWS::EC2::VolumeAttachment"
+    }
+  }
+}

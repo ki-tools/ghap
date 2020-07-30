@@ -1,0 +1,281 @@
+<!doctype html>
+<html class="no-js">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <title>Global Health Analytics Platform</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width">
+    <meta name="robots" content="noindex,nofollow">
+    <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
+    <!-- build:css(.) styles/vendor.css -->
+    <!-- bower:css -->
+    <link rel="stylesheet" href="bower_components/select2/select2.css" />
+    <link rel="stylesheet" href="bower_components/ui-select/dist/select.css" />
+    <link rel="stylesheet" href="bower_components/pickadate/lib/themes/default.css" />
+    <link rel="stylesheet" href="bower_components/pickadate/lib/themes/default.date.css" />
+    <link rel="stylesheet" href="bower_components/pickadate/lib/themes/default.time.css" />
+    <link rel="stylesheet" href="bower_components/angular-ui-select/dist/select.css" />
+    <!-- endbower -->
+    <!-- endbuild -->
+    <!-- build:css(.tmp) styles/main.css -->
+    <link rel="stylesheet" href="styles/main.css">
+    <!-- endbuild -->
+
+
+    <!-- build:css(.tmp) styles/modules.css -->
+    <link rel="stylesheet" href="bower_components/jquery-ui/themes/base/jquery-ui.min.css">
+    <!-- endbuild -->
+
+    <!--<link rel="shortcut icon" href="/favicon.ico?v=2" />-->
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+  </head>
+  <body ng-app="bmgfApp" ng-cloak>
+    <!--[if lt IE 7]>
+      <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
+    <![endif]-->
+
+    <div class="page-wrapper">
+      <div class="header-wrapper"
+           ng-controller="NavCtrl">
+        <div class="content-row">
+          <div class="content">
+            <div class="grid gutter">
+              <div class="grid-col col-3-12">
+                <a class="header-logo"
+                   ng-click="goDefault()"><img src="images/global-health-logo.png"
+                                               alt="Logo"></a>
+              </div>
+              <div class="grid-col col-9-12">
+                <div class="top-nav" ng-show="isUserLoggedIn()">
+                  <span class="top-nav-icon"></span>
+                  <span class="top-nav-text" ng-hide="hideMenu"><a ng-click="account()"><span>Account</span></a>&nbsp;&nbsp;|&nbsp;&nbsp;<a ng-click="Nav.logout()">Logout</a></span>
+                  <span class="top-nav-text" ng-show="hideMenu"><a ng-click="Nav.logout()">Logout</a></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="content-row main-nav-cont">
+          <div class="content">
+            <div class="grid gutter">
+              <div class="grid-col col-12-12">
+                <div class="main-nav">
+                  <ul class="osd-menu"
+                      ng-hide="hideMenu">
+                    <li class="osd-menu-item"
+                        access="Nav.getAccess(item.url)"
+                        ng-repeat="item in Nav.menus"
+                        ng-class="{'current-menu-item': item.active}"
+                        ng-show="isVisible(item)">
+                      <a href="#{{item.url}}"
+                         ng-bind-html="item.name" ></a>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="content-row sub-nav-cont">
+          <div class="content">
+            <div class="sub-nav">
+              <ul class="osd-menu current-menu">
+                <li ng-repeat="submenu in Nav.submenus"
+                    access="Nav.getAccess(submenu.url)"
+                    ng-class="{'current-menu-item': submenu.active}">
+                  <a href="#{{submenu.url}}"
+                     ng-bind-html="submenu.name"></a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div ng-view=""></div>
+
+      <div class="footer-wrapper clear content-row"
+           ng-controller="FooterCtrl">
+          <div class="footer content">
+            <div class="grid">
+              <div class="grid-col col-1-2">
+                <p>Contact Support: <a href="mailto:support@ghap.io">support@ghap.io</a> or 314-951-3090</p>
+                <br>
+                <p>Support Hours: 12:00 AM to 6:00 PM US ET</p>
+              </div>
+              <div class="grid-col col-1-2 align-right">
+                <a ng-click="showTerms()" class="pointer">Terms of Use and Privacy Policy</a>
+                <br><br>
+                <p>Version {{ VERSION }}</p>                                
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Google Analytics: change UA-XXXXX-X to be your site's ID
+     <script>
+       !function(A,n,g,u,l,a,r){A.GoogleAnalyticsObject=l,A[l]=A[l]||function(){
+       (A[l].q=A[l].q||[]).push(arguments)},A[l].l=+new Date,a=n.createElement(g),
+       r=n.getElementsByTagName(g)[0],a.src=u,r.parentNode.insertBefore(a,r)
+       }(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+       ga('create', 'UA-XXXXX-X');
+       ga('send', 'pageview');
+    </script> -->
+
+
+    <!-- build:js(.) scripts/vendor.js -->
+    <!-- bower:js -->
+    <script src="bower_components/jquery/dist/jquery.js"></script>
+    <script src="bower_components/es5-shim/es5-shim.js"></script>
+    <script src="bower_components/angular/angular.js"></script>
+    <script src="bower_components/angular-animate/angular-animate.js"></script>
+    <script src="bower_components/angular-cookies/angular-cookies.js"></script>
+    <script src="bower_components/angular-file-upload/angular-file-upload.js"></script>
+    <script src="bower_components/angular-filter/dist/angular-filter.min.js"></script>
+    <script src="bower_components/angular-resource/angular-resource.js"></script>
+    <script src="bower_components/angular-route/angular-route.js"></script>
+    <script src="bower_components/angular-sanitize/angular-sanitize.js"></script>
+    <script src="bower_components/angular-touch/angular-touch.js"></script>
+    <script src="bower_components/angular-translate/angular-translate.js"></script>
+    <script src="bower_components/angular-ui-utils/ui-utils.js"></script>
+    <script src="bower_components/async/lib/async.js"></script>
+    <script src="bower_components/jquery-ui/jquery-ui.js"></script>
+    <script src="bower_components/select2/select2.js"></script>
+    <script src="bower_components/ua-parser-js/src/ua-parser.js"></script>
+    <script src="bower_components/ui-select/dist/select.js"></script>
+    <script src="bower_components/tv4/tv4.js"></script>
+    <script src="bower_components/objectpath/lib/ObjectPath.js"></script>
+    <script src="bower_components/angular-schema-form/dist/schema-form.js"></script>
+    <script src="bower_components/angular-schema-form/dist/bootstrap-decorator.js"></script>
+    <script src="bower_components/pickadate/lib/picker.js"></script>
+    <script src="bower_components/pickadate/lib/picker.date.js"></script>
+    <script src="bower_components/pickadate/lib/picker.time.js"></script>
+    <script src="bower_components/angular-schema-form-datepicker/bootstrap-datepicker.min.js"></script>
+    <script src="bower_components/angular-ui-select/dist/select.js"></script>
+    <script src="bower_components/underscore/underscore.js"></script>
+    <script src="bower_components/angular-schema-form-ui-select/ui-sortable.js"></script>
+    <script src="bower_components/angular-schema-form-ui-select/angular-underscore.js"></script>
+    <script src="bower_components/angular-schema-form-ui-select/bootstrap-ui-select.min.js"></script>
+    <!-- endbower -->
+    <!-- endbuild -->
+
+        <!-- build:js({.tmp,app}) scripts/scripts.js -->
+        <script src="scripts/directives/bindHtml.js"></script>
+        <script src="scripts/directives/position.js"></script>
+        <script src="scripts/directives/tooltip.js"></script>
+        <script src="scripts/directives/popover.js"></script>
+        <script src="scripts/app.js"></script>
+        <script src="scripts/controllers/password-reset.js"></script>
+        <script src="scripts/controllers/user-management/create-account.js"></script>
+        <script src="scripts/controllers/user-management/edit-account.js"></script>
+        <script src="scripts/controllers/user-management/manage-permissions.js"></script>
+        <script src="scripts/controllers/role-management/create-roles.js"></script>
+        <script src="scripts/controllers/role-management/assign-modeling-activities.js"></script>
+        <script src="scripts/controllers/program-management/program-setup.js"></script>
+        <script src="scripts/controllers/program-management/assignment-by-user.js"></script>
+        <script src="scripts/controllers/program-management/assignment-by-group.js"></script>
+        <script src="scripts/controllers/program-management/assignment-by-program.js"></script>
+        <script src="scripts/controllers/modeling-activities.js"></script>
+        <script src="scripts/controllers/system-reports/usage-reports.js"></script>
+        <script src="scripts/controllers/computing-environment.js"></script>
+        <script src="scripts/controllers/submit-dataset.js"></script>
+        <script src="scripts/controllers/nav.js"></script>
+        <script src="scripts/services/user.js"></script>
+        <script src="scripts/services/role.js"></script>
+        <script src="scripts/services/activity.js"></script>
+        <script src="scripts/services/group.js"></script>
+        <script src="scripts/controllers/policy.js"></script>
+        <script src="scripts/controllers/forgot-password.js"></script>
+        <script src="scripts/controllers/terms.js"></script>
+        <script src="scripts/services/stack.js"></script>
+        <script src="scripts/filters/getbyuuid.js"></script>
+        <script src="scripts/services/activityroleassociation.js"></script>
+        <script src="scripts/controllers/my-account.js"></script>
+        <script src="scripts/services/nav.js"></script>
+        <script src="scripts/controllers/access-denied.js"></script>
+        <script src="scripts/services/focus.js"></script>
+        <script src="scripts/directives/focuson.js"></script>
+        <script src="scripts/services/project.js"></script>
+        <script src="scripts/services/virtualresource.js"></script>
+        <script src="scripts/services/auth.js"></script>
+        <script src="scripts/directives/access.js"></script>
+        <script src="scripts/directives/stopevent.js"></script>
+        <script src="scripts/directives/ngconfirmclick.js"></script>
+        <script src="scripts/services/personalstorage.js"></script>
+        <script src="scripts/directives/filter.js"></script>
+        <script src="scripts/services/userdata.js"></script>
+        <script src="scripts/services/settings.js"></script>
+        <script src="scripts/controllers/submit-dataset-upload.js"></script>
+        <script src="scripts/services/datasubmission.js"></script>
+        <script src="scripts/controllers/submit-dataset.js"></script>
+        <script src="scripts/controllers/submit-dataset-download.js"></script>
+        <script src="scripts/services/synchttp.js"></script>
+        <script src="scripts/directives/workspace.js"></script>
+        <script src="scripts/services/paths.js"></script>
+        <script src="scripts/services/grant.js"></script>
+        <script src="scripts/directives/paginate-anything-tpls.js"></script>
+        <script src="scripts/vendor/ui-bootstrap-custom-tpls-0.13.0.js"></script>
+        <script src="scripts/directives/modaldraggable.js"></script>
+        <script src="scripts/controllers/jira-integration/feedback-modal.js"></script>
+        <script src="scripts/controllers/jira-integration/feedback.js"></script>
+        <script src="scripts/controllers/jira-integration/bug-report.js"></script>
+        <script src="scripts/controllers/jira-integration/knowledge-base.js"></script>
+        <script src="scripts/directives/jirahiddenfields.js"></script>
+        <script src="scripts/directives/filefield.js"></script>
+        <script src="scripts/directives/newpassword.js"></script>
+        <script src="scripts/directives/modalresizable.js"></script>
+        <script src="scripts/directives/selectonclick.js"></script>
+        <script src="scripts/controllers/group-management/create-groups.js"></script>
+        <script src="scripts/controllers/group-management/assign-users.js"></script>
+        <script src="scripts/controllers/visualizations/apps.js"></script>
+        <script src="scripts/controllers/visualizations/submit.js"></script>
+        <script src="scripts/directives/iframeonload.js"></script>
+        <script src="scripts/services/errortranslator.js"></script>
+        <script src="scripts/directives/selectcontent.js"></script>
+        <script src="scripts/controllers/admin-tools/alert-banners.js"></script>        
+        <script src="scripts/controllers/admin-tools/instance-management.js"></script>
+        <script src="scripts/directives/sorter.js"></script>
+        <script src="scripts/controllers/footer.js"></script>
+        <script src="scripts/services/report.js"></script>
+        <script src="scripts/controllers/system-reports/modal.js"></script>
+        <script src="scripts/controllers/system-reports/report-delete-confirm-modal.js"></script>
+        <script src="scripts/directives/dateInput.js"></script>
+
+        <script src="scripts/directives/spinner.js"></script>
+        <script src="scripts/services/banner.js"></script>
+
+        <script src="scripts/directives/lowerthan.js"></script>
+        <script src="scripts/services/bodyshifter.js"></script>
+        <!-- endbuild -->
+
+        <div id="fixed-header">
+            <div class="bannertext" ng-if="$root.bannerMessages.length >= 1" ng-style="{ 'background-color' : $root.bannerMessages[0].color }">
+                <span><b><u>{{ $root.bannerMessages[0].title}}:</b></u> {{ $root.bannerMessages[0].message }}</span>
+            </div>
+            <div class="bannertext" ng-if="$root.bannerMessages.length >= 2" ng-style="{ 'background-color' : $root.bannerMessages[1].color }">
+                <span><b><u>{{ $root.bannerMessages[1].title}}:</b></u> {{ $root.bannerMessages[1].message }}</span>
+            </div>
+
+            <div id="feedback">
+                <iframe style="display:none" name="hidden-form"></iframe>
+                <button type="button"
+                        class="atlwdg-trigger"
+                        ng-controller="BugReportCtrl"
+                        ng-click="openModal()">Report a Problem</button>
+                <button type="button"
+                        class="atlwdg-trigger"
+                        ng-controller="FeedbackCtrl"
+                        ng-click="openModal()">Suggest an Improvement</button>
+                <button type="button"
+                        class="atlwdg-trigger"
+                        ng-controller="KnowledgeBaseCtrl"
+                        ng-click="openTab()">Knowledge Base</button>
+            </div>
+        </div>
+</body>
+</html>

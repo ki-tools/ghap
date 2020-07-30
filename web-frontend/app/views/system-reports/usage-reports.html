@@ -1,0 +1,80 @@
+<div class="content-wrapper clear">
+  <div class="content-row page-header">
+    <div class="content">
+      <h1>Usage Reports</h1>
+    </div>
+  </div>
+  <div class="content-row separator-header">
+    <div class="content">
+      <div class="grid gutter">
+        <div class="grid-col col-4-12">
+          <h4>Select Desired Report</h4>
+        </div>
+        <div class="grid-col col-8-12">
+          <h4>Compiled Reports</h4>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="content-row white separator-left full-separate-right padded">
+    <div class="content">
+      <div class="grid gutter">
+        <div class="grid-col col-4-12 separator-padded-right">
+          <div class="dropdown-list-cont">
+            <div class="dropdown-list-cont__header">Reports</div>
+            <ul class="dropdown-list selectable">
+              <li class="dropdown-list__item"
+                  ng-class="{expanded: reportGroup.expanded}"
+                  ng-repeat="reportGroup in reportGroups">
+                <div class="dropdown-list__item__text"
+                     ng-click="reportGroup.expanded = !reportGroup.expanded">{{reportGroup.name}}</div>
+                <ul class="dropdown-list__sub-menu selectable">
+                  <li class="dropdown-list__sub-menu__item"
+                      ng-repeat="report in reportGroup.reports"
+                      ng-class="{active: report.typeName == selectedReport.typeName}"
+                      ng-click="selectReport(report)"
+                      title="{{hints[report.typeName]}}">
+                    <div class="dropdown-list__item__text">{{report.typeName}}</div>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="grid-col col-8-12 separator-padded-left">
+        
+          <table class="top-right-table no-select reports-table">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Report Title</th>
+                <th>Request Date</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>             
+              <tr ng-repeat="report in reports | orderBy:'-created'">
+                <td ng-click="remove(report.token)"
+                    class="table-col-remove"
+                    title="Delete Report"></td>
+                <td>{{report.name}}</td>
+                <td>{{report.created | date}}</td>
+                <td class="table-col-pause">
+                  <span ng-class="{muted: !isReportComplete(report)}">{{report.status}}</span>
+                </td>
+                <td ng-show="isReportComplete(report)"
+                    class="table-col-download"
+                    title="Download"
+                    ng-click="download(report.token)">
+                </td>
+                <td ng-show="!isReportComplete(report)"></td>
+              </tr>
+            </tbody>
+          </table>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,108 @@
+<div class="content-wrapper clear">
+  <form method="POST" ng-submit="save()">
+    <div class="content-row separator-header page-header">
+      <div class="content">
+        <h1>Modeling Activities</h1>
+      </div>
+    </div>
+    <div class="content-row separator-header padded">
+      <div class="content">
+        <div class="grid gutter">
+          <div class="grid-col col-8-12">
+            <h4>Select Modeling Activity</h4>
+            <div class="button-cont">
+              <img src="/images/ic-add.png" alt="" class="add-button" ng-click="reset()">
+            </div>
+          </div>
+          <div class="grid-col col-4-12">
+            <h4>Edit Modeling Activity</h4>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="content-row white padded separator-right full-separate-right">
+      <div class="content">
+        <div class="grid gutter">
+          <div class="grid-col col-8-12 separator-padded-right">
+            <filter field="filter.activityName" placeholder="Search by activity name"></filter>
+            <table>
+              <thead>
+                <tr>
+                  <th>Modeling Activities</th>
+                  <th class="align-center">Default Cores</th>
+                  <th class="align-center">Min Cores</th>
+                  <th class="align-center">Max Cores</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr ng-repeat="a in activities | filter:filter" ng-click="select(a)">
+                  <td class="color-quaternary weight-600" ng-bind="::a.activityName"></td>
+                  <td class="align-center" ng-bind="::a.defaultComputationalUnits">1</td>
+                  <td class="align-center" ng-bind="::a.minimumComputationalUnits">1</td>
+                  <td class="align-center" ng-bind="::a.maximumComputationalUnits">1</td>
+                  <td ng-click="remove(a)" stop-event class="table-col-remove"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="grid-col col-4-12">
+            <div class="input-cont no-margin">
+              <label>Add Modeling Activity</label>
+              <input type="hidden" ng-model="activity.id" />
+              <input type="text" class="text-input" ng-model="activity.activityName" focus-on="newActivity"/>
+            </div>
+            <div class="grid gutter">
+              <div class="grid-col col-1-2">
+                <div class="input-cont">
+                  <label>Min Cores</label>
+                  <input type="number" min="1" max="10" class="text-input" ng-model="activity.minimumComputationalUnits">
+                </div>
+              </div>
+              <div class="grid-col col-1-2">
+                <div class="input-cont">
+                  <label>Max Cores</label>
+                  <input type="number" min="1" max="10" class="text-input" ng-model="activity.maximumComputationalUnits">
+                </div>
+              </div>
+            </div>
+            <div class="grid gutter">
+              <div class="grid-col col-1-2">
+                <div class="input-cont no-margin">
+                  <label>Default Cores</label>
+                  <input type="number" min="1" max="10" class="text-input" ng-model="activity.defaultComputationalUnits" />
+                </div>
+              </div>
+              <div class="grid-col col-1-2">
+                <div class="input-cont no-margin">
+                  <label>OS type</label>
+                  <select class="text-input" ng-model="activity.os">
+                    <option value=""></option>
+                    <option value="grid">GRID</option>
+                    <option value="windows">Windows</option>
+                    <option value="linux">Linux</option>
+                    <option value="zzz-grid">ZZZ-GRID</option>
+                    <option value="zzz-windows">ZZZ-Windows</option>
+                    <option value="zzz-linux">ZZZ-Linux</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="input-cont">
+              <label>Template URL</label>
+              <input type="url" class="text-input" ng-model="activity.templateUrl" ng-required="true" focus-on="newActivity"/>
+            </div>
+            <div class="grid gutter">
+              <div class="grid-col col-1-2">
+                <p>&nbsp;</p>
+                <div class="input-cont">
+                  <input type="submit" class="submit-button" value="Update" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

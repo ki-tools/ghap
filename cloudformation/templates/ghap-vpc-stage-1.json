@@ -1,0 +1,80 @@
+{
+  "Description": "Cloudformation Stack that defines the first stage of the VPC for the GHAP Platform",
+  "Parameters" : {
+    "CIDR": {
+      "Default": "10.10.0.0/16",
+      "Type" : "String"
+    },
+    "Domain": {
+      "Description": "Domain to configure this is either ghap.io.,dev.ghap.io. or qa.ghap.io.",
+      "Default": "ghap.io.",
+      "Type": "String"
+    },
+    "DeploymentTarget" : {
+      "Description" : "Deployment Target, this is either prod or dev",
+      "Default" : "prod",
+      "AllowedValues" : ["prod","qa","devtest", "samba"],
+      "Type" : "String"
+    }
+  },
+  "Resources": {
+    "GhapVPC": {
+      "Properties": {
+        "CidrBlock": {"Ref": "CIDR"},
+        "EnableDnsHostnames": false,
+        "EnableDnsSupport": true
+      },
+      "Type": "AWS::EC2::VPC"
+    },
+    "GhapDhcpOptionSet": {
+      "Properties": {
+        "DomainName": {"Ref": "Domain"},
+        "DomainNameServers": ["10.10.12.100"]
+      },
+      "Type": "AWS::EC2::DHCPOptions"
+    },
+    "GhapDhcpVPCAssociation": {
+      "DependsOn": [
+        "GhapDhcpOptionSet",
+        "GhapVPC"
+      ],
+      "Properties": {
+        "DhcpOptionsId": {"Ref": "GhapDhcpOptionSet"},
+        "VpcId": {"Ref": "GhapVPC"}
+      },
+      "Type": "AWS::EC2::VPCDHCPOptionsAssociation"
+    },
+    "GhapInternetGateway": {
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Network",
+            "Value": "Public"
+          }
+        ]
+      },
+      "Type": "AWS::EC2::InternetGateway"
+    },
+    "GhapGatewayToInternet": {
+      "DependsOn": [
+        "GhapInternetGateway",
+        "GhapVPC"
+      ],
+      "Properties": {
+        "VpcId": {"Ref": "GhapVPC"},
+        "InternetGatewayId": {"Ref": "GhapInternetGateway"}
+      },
+      "Type": "AWS::EC2::VPCGatewayAttachment"
+    }
+  },
+  "Outputs": {
+    "GhapVPCOutput": {
+      "Value": {"Ref": "GhapVPC"},
+      "Description": "VPC Id"
+    },
+    "GhapInternetGatewayOutput" : {
+      "Value" : {"Ref" : "GhapInternetGateway"},
+      "Description" : "Internet Gateway Id"
+    }
+  }
+}

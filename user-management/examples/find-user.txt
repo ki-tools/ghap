@@ -1,0 +1,14 @@
+address: http://localhost:8080/user/CN=Administrator,CN=Users,DC=ad,DC=loc
+method: GET
+response type: application/json
+response example:
+{
+    "dn":"CN=Administrator,CN=Users,DC=ad,DC=loc",
+    "name":"Administrator",
+    "firstName":null,
+    "lastName":null,
+    "email":null
+}
+
+error response:
+{"errors":{"code":"notExists","message":"Cannot find user"}}

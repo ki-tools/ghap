@@ -1,0 +1,383 @@
+{
+  "Description" : "Cloudformation Stack for Linux Slurm 2node VPG for Analysts",
+  "Mappings": {
+    "AvailabilityZone": {
+      "ZoneOne": { "ZONEID": "us-east-1a" },
+      "ZoneTwo": { "ZONEID": "us-east-1c" }
+    },
+    "RegionMap" : {
+      "us-east-1"      : { "AMI" : "ami-0722bbed23b399144" }
+    }	
+  },
+  "Parameters": {
+    "KeyName": {
+      "ConstraintDescription": "Must be the name of an existing EC2 KeyPair.",
+      "Description": "EC2 Key Pair to allow SSH access to the instance",
+      "Type": "AWS::EC2::KeyPair::KeyName",
+      "Default": "ghap-linux"
+    },
+    "ServerAccess": {
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "Must be a valid CIDR range of the form x.x.x.x/x.",
+      "Default": "0.0.0.0/0",
+      "Description": "CIDR IP range allowed to login to the NAT instance",
+      "MaxLength": "18",
+      "MinLength": "9",
+      "Type": "String"
+    },
+    "GhapVPC": {
+      "ConstraintDescription": "The VPC Id",
+      "Description": "The VPC Id",
+      "Default" : "vpc-509da235",
+	  "Type": "String"
+    },
+    "GhapPrivateSubnetA": {
+      "Description": "Private Subnet Id for Availability Zone",
+      "Default" : "subnet-7d92f024",
+	  "Type": "String"
+    },
+    "GhapPrivateSubnetB": {
+      "Description": "Private Subnet Id for Availability Zone",
+      "Default" : "subnet-7187135a",
+	  "Type": "String"
+    },
+    "GhapPublicSubnetA": {
+      "Description": "Public Subnet Id for Availability Zone",
+      "Default" : "subnet-7a92f023",
+	  "Type": "String"
+    },
+    "GhapPublicSubnetB": {
+      "Description": "Public Subnet Id for Availability Zone",
+      "Default" : "subnet-72871359",
+	  "Type": "String"
+    },
+    "GhapNatSecurityGroup" : {
+      "Description": "Security Id for Nat Security Group",
+      "Default" : "sg-02767166",
+	  "Type": "String"
+    },
+    "Domain": {
+      "Description": "The domain or subdomain to be used.",
+      "Type": "String",
+      "Default" : "ghap.io",
+      "ConstraintDescription" : "Must specify ghap.io, dev.ghap.io, qa.ghap.io, or samba.ghap.io",
+      "AllowedValues" : ["ghap.io", "dev.ghap.io", "qa.ghap.io", "samba.ghap.io"]
+    },
+    "IdleResourcesSNSTopicArn" : {
+      "Description": "The ARN to the SNS Topic that can receive notification regarding Idle Resources",
+      "Default" : "unknown",
+      "Type": "String"
+    },
+    "UniqueId" : {
+      "Description" : "UUID from Stash for the User",
+      "Type" : "String"
+    },
+    "Username": {
+      "Description": "The Username of the User",
+      "Type": "String",
+      "Default" : "Unknown"
+    },
+    "Email" : {
+      "Description" : "The Email address of the User",
+      "Type" : "String",
+      "Default" : "Unknown"
+    },
+    "SQSRole": {
+      "Description": "Role for publishing autoscaling events",
+      "Type": "String",
+      "Default" : "arn:aws:iam::091012940692:role/autoscaling-hook"
+    }
+  },
+  "Resources" : {
+	"ComputeHead": {
+	  "CreationPolicy": {
+	    "ResourceSignal": {
+	      "Timeout": "PT30M"
+	  }
+	},
+	"Metadata" : {
+        "AWS::CloudFormation::Init" : {
+          "configSets" : {
+            "InstallAndRun" : [ "configure_computehead" ]
+          },
+	  "configure_computehead" : {
+            "commands" : {
+              "01-Record-Stage" : {
+                 "command" : "echo STAGE:PROD >> /root/host.settings\n",
+                 "ignoreErrors" : "false"
+              },
+              "02-Record-Userid" : {
+                 "command" : { "Fn::Join" : ["", [ "echo \"USERID:", {"Ref": "UniqueId"}, "\" >> /root/host.settings"]]},
+                 "ignoreErrors" : "false"
+              },
+              "03-Record-Username" : {
+                 "command" : { "Fn::Join" : ["", [ "echo \"USERNAME:", {"Ref": "Username"}, "\" >> /root/host.settings"]]},
+                 "ignoreErrors" : "false"
+              },
+              "04-Record-UserEmail" : {
+                 "command" : { "Fn::Join" : ["", [ "echo \"USEREMAIL:", {"Ref": "Email"}, "\" >> /root/host.settings"]]},
+                 "ignoreErrors" : "false"
+              },
+              "05-Record-HostInfo" : {
+                 "command" : "/bin/sh /root/tools/ghap_record_host_info.sh \n",
+                 "ignoreErrors" : "false"
+              },
+              "06-Configure-Host" : {
+                 "command" : "/bin/sh /root/tools/ghap_configure_linux_slurm-gridsrv-static.sh \n",
+                 "ignoreErrors" : "false"
+              },
+              "07-Configure-DotFiles" : {
+                 "command" : "/bin/sh /root/tools/create_user_dotfiles.sh \n",
+                 "ignoreErrors" : "false"
+              }
+            },
+	     "services" : {
+              "sysvinit" : {
+                "nfs" : { "enabled" : "true", "ensureRunning" : "true" },
+                "nfslock" : { "enabled" : "true", "ensureRunning" : "true" }
+              }
+            }
+          }		  
+	}
+      },
+      "Properties": {
+        "ImageId" : { "Fn::FindInMap" : [ "RegionMap", { "Ref" : "AWS::Region" }, "AMI" ]},
+        "InstanceType": "m3.large",
+        "KeyName": { "Ref": "KeyName" },
+	"Tags" : [
+          {"Key" : "Name", "Value" : {"Fn::Join":[" - ",["Ghap Linux Slurm 2node VPG",{"Ref": "Username"},"ComputeHead"]]}},
+          {"Key" : "Ghap-Platform", "Value" : "Linux"},
+          {"Key" : "Ghap-Release", "Value" : "1.16"},
+          {"Key" : "Ghap-Stage", "Value" : "PROD"},
+          {"Key" : "Ghap-User", "Value" : {"Ref": "Username"} }
+	],
+        "SourceDestCheck": false,
+        "AvailabilityZone": { "Fn::FindInMap": [ "AvailabilityZone", "ZoneOne", "ZONEID" ] },
+        "NetworkInterfaces": [
+          {
+            "AssociatePublicIpAddress": "true",
+            "DeleteOnTermination": "true",
+            "DeviceIndex": "0",
+            "GroupSet": [ "sg-530f722a" ],
+            "SubnetId": { "Ref" : "GhapPublicSubnetA"}
+          }
+        ],
+        "UserData" : {
+          "Fn::Base64" : {
+          "Fn::Join" : [
+            "", [
+                "#!/bin/bash\n",
+                "cfn-init -v ",
+                " --stack ", { "Ref": "AWS::StackName" },
+                " --resource ComputeHead ",
+                " --region ", { "Ref" : "AWS::Region" },
+                " --configsets InstallAndRun \n",
+                "cfn-signal -e $? ",
+                " --stack ",{"Ref": "AWS::StackName"},
+                " --resource ComputeHead \n"
+                ]
+             ]
+          }
+      	}
+      },
+      "Type": "AWS::EC2::Instance"
+    },
+    "ComputeNodeOne": {
+	    "Type" : "AWS::EC2::Instance",
+		"DependsOn" : ["ComputeHead", "ComputeNodeTwo" ],
+		"CreationPolicy": {
+			"ResourceSignal": {
+			"Timeout": "PT30M"
+			}
+		},
+     	"Metadata" : {
+        "AWS::CloudFormation::Init" : {
+          "configSets" : {
+            "InstallAndRun" : [ "configure_computenode" ]
+          },
+          "configure_computenode" : {
+            "commands" : {
+              "01-Record-Stage" : {
+                 "command" : "echo STAGE:PROD >> /root/host.settings\n",
+                 "ignoreErrors" : "false"
+              },
+              "02-Record-Userid" : {
+                 "command" : { "Fn::Join" : ["", [ "echo \"USERID:", {"Ref": "UniqueId"}, "\" >> /root/host.settings"]]},
+                 "ignoreErrors" : "false"
+              },
+              "03-Record-Username" : {
+                 "command" : { "Fn::Join" : ["", [ "echo \"USERNAME:", {"Ref": "Username"}, "\" >> /root/host.settings"]]},
+                 "ignoreErrors" : "false"
+              },
+              "04-Record-UserEmail" : {
+                 "command" : { "Fn::Join" : ["", [ "echo \"USEREMAIL:", {"Ref": "Email"}, "\" >> /root/host.settings"]]},
+                 "ignoreErrors" : "false"
+              },
+              "05-Record-GridSrvName" : {
+                 "command" : { "Fn::Join" : ["", [ "echo \"GRIDSRV_NAME:", { "Fn::GetAtt" : [ "ComputeHead", "PrivateDnsName" ] }, "\" >> /root/host.settings"]]},
+                 "ignoreErrors" : "false"
+              },
+              "06-Record-GridSrvIP" : {
+                 "command" : { "Fn::Join" : ["", [ "echo \"GRIDSRV_IP:", { "Fn::GetAtt" : [ "ComputeHead", "PrivateIp" ] }, "\" >> /root/host.settings"]]},
+                 "ignoreErrors" : "false"
+              },
+              "07-Record-HostInfo" : {
+                 "command" : "/bin/sh /root/tools/ghap_record_host_info.sh \n",
+                 "ignoreErrors" : "false"
+              },
+              "08-Configure-Host" : {
+                 "command" : "/bin/sh /root/tools/ghap_configure_linux_slurm-gridnode-static.sh \n",
+                 "ignoreErrors" : "false"
+              }
+            },
+            "services" : {
+              "sysvinit" : {
+                "iptables" :  { "enabled" : "false", "ensureRunning" : "false" },
+                "ip6tables" : { "enabled" : "false", "ensureRunning" : "false" }
+              }
+            }
+	  }
+	}
+      },
+      "Properties": {
+        "ImageId" : { "Fn::FindInMap" : [ "RegionMap", { "Ref" : "AWS::Region" }, "AMI" ]},
+        "InstanceType": "c3.4xlarge",
+        "KeyName": { "Ref": "KeyName" },
+	"Tags" : [
+          {"Key" : "Name", "Value" : {"Fn::Join":[" - ",["Ghap Linux Slurm 2node VPG",{"Ref": "Username"},"ComputeNode #1"]]}},
+          {"Key" : "Ghap-Platform", "Value" : "Linux"},
+          {"Key" : "Ghap-Release", "Value" : "1.16"},
+          {"Key" : "Ghap-Stage", "Value" : "PROD"},
+          {"Key" : "Ghap-User", "Value" : {"Ref": "Username"} }
+	],
+        "SourceDestCheck": false,
+        "AvailabilityZone": { "Fn::FindInMap": [ "AvailabilityZone", "ZoneOne", "ZONEID" ] },
+        "NetworkInterfaces": [
+          {
+            "AssociatePublicIpAddress": "false",
+            "DeleteOnTermination": "true",
+            "DeviceIndex": "0",
+            "GroupSet": [ "sg-530f722a" ],
+            "SubnetId": { "Ref" : "GhapPrivateSubnetA"}
+          }
+        ],
+		"UserData" : {
+          "Fn::Base64" : {
+          "Fn::Join" : [
+            "", [
+                "#!/bin/bash\n",
+                "#!/bin/bash\n",
+                "cfn-init -v ",
+                " --stack ", { "Ref": "AWS::StackName" },
+                " --resource ComputeNodeOne ",
+                " --region ", { "Ref" : "AWS::Region" },
+                " --configsets InstallAndRun \n",
+                "cfn-signal -e $? ",
+                " --stack ",{"Ref": "AWS::StackName"},
+                " --resource ComputeNodeOne \n"
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "ComputeNodeTwo": {
+	    "Type" : "AWS::EC2::Instance",
+		"DependsOn" : ["ComputeHead" ],
+		"CreationPolicy": {
+			"ResourceSignal": {
+			"Timeout": "PT30M"
+			}
+		},
+     	"Metadata" : {
+        "AWS::CloudFormation::Init" : {
+          "configSets" : {
+            "InstallAndRun" : [ "configure_computenode" ]
+          },
+          "configure_computenode" : {
+            "commands" : {
+              "01-Record-Stage" : {
+                 "command" : "echo STAGE:PROD >> /root/host.settings\n",
+                 "ignoreErrors" : "false"
+              },
+              "02-Record-Userid" : {
+                 "command" : { "Fn::Join" : ["", [ "echo \"USERID:", {"Ref": "UniqueId"}, "\" >> /root/host.settings"]]},
+                 "ignoreErrors" : "false"
+              },
+              "03-Record-Username" : {
+                 "command" : { "Fn::Join" : ["", [ "echo \"USERNAME:", {"Ref": "Username"}, "\" >> /root/host.settings"]]},
+                 "ignoreErrors" : "false"
+              },
+              "04-Record-UserEmail" : {
+                 "command" : { "Fn::Join" : ["", [ "echo \"USEREMAIL:", {"Ref": "Email"}, "\" >> /root/host.settings"]]},
+                 "ignoreErrors" : "false"
+              },
+              "05-Record-GridSrvName" : {
+                 "command" : { "Fn::Join" : ["", [ "echo \"GRIDSRV_NAME:", { "Fn::GetAtt" : [ "ComputeHead", "PrivateDnsName" ] }, "\" >> /root/host.settings"]]},
+                 "ignoreErrors" : "false"
+              },
+              "06-Record-GridSrvIP" : {
+                 "command" : { "Fn::Join" : ["", [ "echo \"GRIDSRV_IP:", { "Fn::GetAtt" : [ "ComputeHead", "PrivateIp" ] }, "\" >> /root/host.settings"]]},
+                 "ignoreErrors" : "false"
+              },
+              "07-Record-HostInfo" : {
+                 "command" : "/bin/sh /root/tools/ghap_record_host_info.sh \n",
+                 "ignoreErrors" : "false"
+              },
+              "08-Configure-Host" : {
+                 "command" : "/bin/sh /root/tools/ghap_configure_linux_slurm-gridnode-static.sh \n",
+                 "ignoreErrors" : "false"
+              }
+            },
+            "services" : {
+              "sysvinit" : {
+                "iptables" :  { "enabled" : "false", "ensureRunning" : "false" },
+                "ip6tables" : { "enabled" : "false", "ensureRunning" : "false" }
+              }
+            }
+	  }
+	}
+      },
+      "Properties": {
+        "ImageId" : { "Fn::FindInMap" : [ "RegionMap", { "Ref" : "AWS::Region" }, "AMI" ]},
+        "InstanceType": "c3.4xlarge",
+        "KeyName": { "Ref": "KeyName" },
+	"Tags" : [
+          {"Key" : "Name", "Value" : {"Fn::Join":[" - ",["Ghap Linux Slurm 2node VPG",{"Ref": "Username"},"ComputeNode #2"]]}},
+          {"Key" : "Ghap-Platform", "Value" : "Linux"},
+          {"Key" : "Ghap-Release", "Value" : "1.16"},
+          {"Key" : "Ghap-Stage", "Value" : "PROD"},
+          {"Key" : "Ghap-User", "Value" : {"Ref": "Username"} }
+	],
+        "SourceDestCheck": false,
+        "AvailabilityZone": { "Fn::FindInMap": [ "AvailabilityZone", "ZoneOne", "ZONEID" ] },
+        "NetworkInterfaces": [
+          {
+            "AssociatePublicIpAddress": "false",
+            "DeleteOnTermination": "true",
+            "DeviceIndex": "0",
+            "GroupSet": [ "sg-530f722a" ],
+            "SubnetId": { "Ref" : "GhapPrivateSubnetA"}
+          }
+        ],
+		"UserData" : {
+          "Fn::Base64" : {
+          "Fn::Join" : [
+            "", [
+                "#!/bin/bash\n",
+                "cfn-init -v ",
+                " --stack ", { "Ref": "AWS::StackName" },
+                " --resource ComputeNodeTwo ",
+                " --region ", { "Ref" : "AWS::Region" },
+                " --configsets InstallAndRun \n",
+                "cfn-signal -e $? ",
+                " --stack ",{"Ref": "AWS::StackName"},
+                " --resource ComputeNodeTwo \n"
+              ]
+            ]
+          }
+        }
+      }
+    }
+  }
+}

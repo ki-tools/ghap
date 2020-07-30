@@ -1,0 +1,5 @@
+curl -i -H "Content-Type: application/json" -X PUT -d '{"id":"cf49106a-f8c1-4874-9970-008ddb9ab0e2","name":"gran33"}' http://192.168.1.33:8080/project/grant
+
+response example
+
+{"success":true,"errors":null,"data":{"id":"cf49106a-f8c1-4874-9970-008ddb9ab0e2","name":"gran33"}}

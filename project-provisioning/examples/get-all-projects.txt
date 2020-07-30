@@ -1,0 +1,5 @@
+curl -i -H "Content-Type: application/json" -X GET http://192.168.1.33:8080/project
+
+response example
+
+[{"id":"0accb4aa-0ae8-4b78-b45c-0138b2e008d8","name":"project2","key":"KEY2","description":"qwerty"},{"id":"082753ab-5e41-4d3c-b556-7630af896cd2","name":"first8","key":"FIRSTPROJECT5","description":null},{"id":"29558784-e537-448c-bcc9-7192ca176785","name":"project1","key":"KEY1","description":null}]

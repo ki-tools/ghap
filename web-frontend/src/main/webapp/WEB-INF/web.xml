@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="http://java.sun.com/xml/ns/javaee" version="2.5"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://java.sun.com/xml/ns/javaee
+     http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd">
+
+	<display-name>www</display-name>
+	<servlet>
+	    <servlet-name>JAASConfigurationServlet</servlet-name>
+	    <servlet-class>io.ghap.security.ConfigurationServlet</servlet-class>
+	    <load-on-startup>0</load-on-startup>
+	</servlet>
+
+	<servlet-mapping>
+		<servlet-name>JAASConfigurationServlet</servlet-name>
+		<url-pattern>/settings</url-pattern>
+	</servlet-mapping>
+
+	<servlet>
+		<servlet-name>RemoteAddressServlet</servlet-name>
+		<servlet-class>io.ghap.security.RemoteIpServlet</servlet-class>
+		<load-on-startup>0</load-on-startup>
+	</servlet>
+
+	<servlet-mapping>
+		<servlet-name>RemoteAddressServlet</servlet-name>
+		<url-pattern>/remoteaddr</url-pattern>
+	</servlet-mapping>
+
+	<servlet>
+		<servlet-name>RemotePrivateAddressServlet</servlet-name>
+		<servlet-class>io.ghap.security.RemotePrivateIpServlet</servlet-class>
+		<load-on-startup>0</load-on-startup>
+	</servlet>
+
+	<servlet-mapping>
+		<servlet-name>RemotePrivateAddressServlet</servlet-name>
+		<url-pattern>/privateremoteaddr</url-pattern>
+	</servlet-mapping>
+	<!-- <servlet>
+		<display-name>index</display-name>
+		<servlet-name>index</servlet-name>
+		<jsp-file>/index.jsp</jsp-file>
+	</servlet>
+	<security-constraint>
+		<display-name>SecurityConstraint</display-name>
+		<web-resource-collection>
+			<web-resource-name>WRCollection</web-resource-name>
+			<url-pattern>*.jsp</url-pattern>
+			<url-pattern>*.html</url-pattern>
+			<http-method>GET</http-method>
+    		<http-method>POST</http-method>
+		</web-resource-collection>
+		<auth-constraint>
+			<role-name>*</role-name>
+		</auth-constraint>
+		<user-data-constraint>
+			<transport-guarantee>NONE</transport-guarantee>
+		</user-data-constraint>
+	</security-constraint>
+	<login-config>
+		<auth-method>FORM</auth-method>
+		<form-login-config>
+			<form-login-page>/login.jsp</form-login-page>
+			<form-error-page>/loginError.jsp</form-error-page>
+		</form-login-config>
+	</login-config>
+	<security-role>
+		<role-name>*</role-name>
+	</security-role> -->
+</web-app>

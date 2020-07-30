@@ -1,0 +1,39 @@
+{
+  "defaultEnvironment" : "qa",
+  "defaultBrowser" : "chrome",
+
+  "qa": {
+    "ghapUrl": "http://www.qa.ghap.io"
+  },
+
+  "prod": {
+    "ghapUrl": "http://www.ghap.io"
+  },
+
+  "samba": {
+    "ghapUrl": "http://www.samba.ghap.io"
+  },
+
+  "common" : {
+    "adminName" : "vlad.ruzov.admin",
+    "adminPassword" : "",
+
+    "userName" : "vlad.ruzov.e2e",
+    "userNamePattern" : "^vlad\\.ruzov\\.e2e$",
+    "userPassword" : "",
+
+    "userEmail" : "ghap.tester@gmail.com",
+    "emailPassword" : "",
+    "mailServer" : "imap.gmail.com",
+    "mailServerPort" : 993,
+
+    "contributorName" : "vlad.ruzov.contributor",
+    "contributorPassword" : "",
+
+    "curatorName" : "vlad.ruzov.curator",
+    "curatorPassword" : "",
+
+    "tstFileName" : "e2e-tst.bin",
+    "tstFileSizeMb" : 5
+  }
+}

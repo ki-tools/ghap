@@ -1,0 +1,147 @@
+<div class="content-wrapper clear">
+  <form name="form" novalidate method="POST" ng-submit="save()">
+    <div class="content-row separator-header page-header">
+      <div class="content">
+        <h1>Alert Banners</h1>
+      </div>
+    </div>
+    <div class="content-row separator-header padded">
+      <div class="content">
+        <div class="grid gutter">
+          <div class="grid-col col-4-12">
+            <h4>Select Banner</h4>
+            <div class="button-cont">
+              <img src="/images/ic-add.png" alt="" class="add-button" ng-click="reset()">
+            </div>
+          </div>
+          <div class="grid-col col-8-12">
+            <h4>Banner information</h4>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="content-row padded white separator-left full-separate-right">
+      <div class="content">
+        <div class="grid gutter">
+          <div class="grid-col col-4-12 separator-padded-right">
+            <filter field="filter.title" placeholder="Search by banner name"></filter>
+            <table>
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th class="align-center">Start Date</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr ng-repeat="b in banners | filter:filter"
+                    ng-class="{active: b.id == banner.id}"
+                    ng-click="select(b)">
+                  <td class="color-quaternary weight-600" ng-bind="::b.title"></td>
+                  <td class="align-center" ng-bind="::b.startDate">1</td>
+                  <td ng-click="remove(b)" stop-event class="table-col-remove"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="grid-col col-8-12">
+            <div class="input-cont no-margin">
+              <label>Banner Title</label>
+              <input type="hidden" ng-model="banner.id" />
+              <input type="text" class="text-input" ng-model="banner.title" name="title" required focus-on="newBanner"/>
+            </div>
+            <div class="error-message-cont padding-before" ng-if="form.title.$error.required && form.$submitted">
+              banner title should be defined
+            </div>
+            <div class="input-cont">
+              <label>Banner Message</label>
+              <textarea class="text-input" style="height: 5em" ng-model="banner.message"></textarea>
+            </div>
+            <div class="input-cont">
+              <label>Banner color</label>
+              <select ng-model="banner.color" ng-options="item.id as item.name for item in colorList"></select>
+            </div>
+            <div class="grid gutter">
+              <div class="grid-col col-1-2">
+                <div class="input-cont no-margin">
+                  <label>Start Date</label>
+                  <input placeholder="Set beginning date"
+                         class="text-input text-input--calendar"
+                         id="start-datepicker"
+                         ng-model="banner.startDate"
+                         name="startDate"
+                         lower-than="{{banner.endDate}}T{{banner.endTime}}:00.000Z"
+                         compare-with="{{banner.startDate}}T{{banner.startTime}}:00.000Z"
+                         required>
+                </div>
+                <div class="error-message-cont padding-before" ng-if="form.startDate.$error.required && form.$submitted">
+                  start date should be defined
+                </div>
+                <div class="error-message-cont padding-before" ng-if="form.startDate.$error.lowerThan && form.$submitted">
+                  start date should be less then end date
+                </div>
+              </div>
+              <div class="grid-col col-1-2">
+                <div class="input-cont no-margin">
+                  <label>End Date</label>
+                  <input placeholder="Set ending date"
+                         class="text-input text-input--calendar"
+                         id="end-datepicker"
+                         ng-model="banner.endDate"
+                         name="endDate"
+                         required>
+                </div>
+                <div class="error-message-cont padding-before" ng-if="form.endDate.$error.required && form.$submitted">
+                  end date should be defined
+                </div>
+              </div>
+              <script type="text/javascript">
+                // TODO refactor because it is dirty!
+                $("#start-datepicker").datepicker({ dateFormat: "yy-mm-dd"});
+                $("#end-datepicker").datepicker({ dateFormat: "yy-mm-dd" });
+              </script>
+            </div>
+
+            <div class="grid gutter">
+              <div class="grid-col col-1-2">
+                <div class="input-cont">
+                  <input type="time" class="text-input text-input--time" date-input ng-model="banner.startTime" name="startTime" placeholder="00:00" ng-pattern="/^[0-9]{2}:[0-9]{2}$/" required>
+                </div>
+                <div class="error-message-cont padding-after" ng-if="form.startTime.$error.pattern">
+                  wrong time format
+                </div>
+                <div class="error-message-cont padding-after" ng-if="form.startTime.$error.required">
+                  start time should be defined
+                </div>
+              </div>
+              <div class="grid-col col-1-2">
+                <div class="input-cont">
+                  <input type="time" class="text-input text-input--time" date-input ng-model="banner.endTime" name="endTime"  placeholder="00:00" ng-pattern="/^[0-9]{2}:[0-9]{2}$/" required>
+                </div>
+                <div class="error-message-cont padding-after" ng-if="form.endTime.$error.pattern">
+                  wrong time format
+                </div>
+                <div class="error-message-cont padding-after" ng-if="form.endTime.$error.required">
+                  end time should be defined
+                </div>
+              </div>
+            </div>
+
+            <div class="grid gutter">
+              <div class="grid-col col-1-4">
+                <input type="submit" class="submit-button" value="{{ actionType }}" />
+              </div>
+
+              <div class="grid-col col-4-8 right-side-message">
+                <div ng-show="errors.length > 0" class="error-message-cont"><ul>
+                  <li ng-repeat="error in errors">{{error}}</li>
+                </ul></div>
+                <div ng-show="success" class="success-message-cont" ng-bind-html="success"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

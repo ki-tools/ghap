@@ -1,0 +1,156 @@
+/*
+    JSPWiki - a JSP-based WikiWiki clone.
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); fyou may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+*/
+/*
+Section: Main Content
+
+    Uses a minimal grid-system to display/hide the sidebar left from the main page container.
+    The sidebar slides in/out at the left, via a css transition, by adding/removing
+    .active to the main content container. (adding .active, makes the sidebar visible)
+
+    The div.page element comes first in the DOM tree, before the div.sidebar.
+
+    TODO: [stack sidebar ico small devices]
+
+DOM Structure:
+(start code)
+    div.content[.active]
+        div.page
+        	div.page-content
+        	div.page-footer
+        div.sidebar
+(end)
+*/
+
+.content {
+    /* position:relative;  => dont, otherwise suggestion dialogs are clipped */
+    padding:0;
+    overflow:hidden; //checkme
+    clear:both;
+    .hyphens(auto);
+    .transition(all .3s);
+}
+.page {
+    float:right;
+    width:100%;
+}
+.sidebar {
+    float:left;
+    width:@wiki-sidebar-width;
+    margin-left:-@wiki-sidebar-width;
+    padding:@padding-base-horizontal;
+    //padding-left:@padding-base-horizontal;
+    //padding-right:@padding-base-horizontal;
+    overflow-x:hidden;
+}
+.page, .sidebar {
+    //box-sizing: border-box;  //width% now includes border & padding : already part of bootstrap
+   .transition(all .3s);
+    //& > *:last-child { padding-bottom:1em; }
+}
+
+.content.active {
+    .page { width:100%-@wiki-sidebar-width; }
+    .sidebar { margin-left:0; }
+}
+.content {
+    background: @wiki-page-bg;  //page background color
+    position: relative;  //prepare for the :after element to give the sidebar another color
+}
+.content:after {
+    content: " ";
+    position: absolute; top: 0; left: 0; bottom: 0;
+    background: @wiki-sidebar-bg;
+    .transition (all .3s);
+    width: @wiki-sidebar-width;
+}
+.content:not(.active):after {
+    width: 0;
+}
+.sidebar {
+    z-index:1;  //ontop of the content:after element !
+}
+
+/*
+Put sidebar at the right side
+- FFS: also move toggle buttons to other side ?
+*/
+.fav-right {
+    .content:after {
+        right:0; left:auto;
+    }
+    .page    {
+        float:left;
+    }
+    .sidebar {
+        float: right;
+        margin-left: 0;
+        margin-right: -@wiki-sidebar-width;
+    }
+    .content.active {
+        .sidebar { margin-right:0; }
+    }
+}
+/*
+Main logic to hide the sidebar is in ViewTemplate.jsp.
+We may just hide the on/off toggle in css
+*/
+//.fav-hidden #menu {  .hide; }
+
+
+.page-content, .sidebar {
+	.clearfix;
+	& > *:first-child { margin-top:0;}
+	//& > h2, & > h3, & > h4,  { margin-top:0; }
+}
+.page-content {
+    //margin:0 @padding-base-horizontal  @padding-base-vertical @padding-base-horizontal;
+    margin:0 @padding-base-horizontal;
+}
+
+
+/*
+Section: page-footer
+
+DOM Structure:
+(start code)
+	This page (revision-999) was last changed on
+    a[href="/Diff.jsp?page=Main&amp;r1=634&amp;r2=633"] 17-May-2013 19:36
+    by
+    a.wikipage page-author
+    a.feed[title='RSS feed for page Main'] &nbsp;
+    a.caretup[href="#top"][title="Go to top"] &laquo;
+(end)
+*/
+.page-footer {
+	display:block;
+	padding:.5em 0 0 0;
+    background:@wiki-page-bg;
+    text-align:right;
+}
+
+//reverse direction caret
+.caret-up {
+	.caret;
+    border-top: 0;
+    border-bottom: @caret-width-base solid;
+    content: "";
+}
+

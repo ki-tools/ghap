@@ -1,0 +1,14 @@
+{
+  "name": "frisby-tests",
+  "version": "1.0.0",
+  "description": "Frisby tests for HGBDki REST services",
+  "author": "Vlad Ruzov",
+  "dependencies": {
+    "frisby": "^0.8.5",
+	"aws-sdk": ">= 2.0.9"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "jasmine-node spec/"
+  }
+}

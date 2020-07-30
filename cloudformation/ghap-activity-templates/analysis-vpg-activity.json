@@ -1,0 +1,268 @@
+{
+  "Conditions": {
+    "AttachUserStorage": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "UserVolumeId"
+            },
+            "UNSET"
+          ]
+        }
+      ]
+    }
+  },
+  "Description": "Cloudformation Stack for Virtual Private Grid for Analysts",
+  "Mappings": {
+    "AvailabilityZone": {
+      "A": {
+        "ZONEID": "us-east-1a"
+      },
+      "B": {
+        "ZONEID": "us-east-1c"
+      }
+    }
+  },
+  "Parameters": {
+    "Domain": {
+      "AllowedValues": [
+        "ghap.io",
+        "dev.ghap.io",
+        "qa.ghap.io"
+      ],
+      "ConstraintDescription": "Must specify ghap.io or dev.ghap.io.",
+      "Default": "dev.ghap.io",
+      "Description": "The domain or subdomain to be used.",
+      "Type": "String"
+    },
+    "GhapNatSecurityGroup": {
+      "Description": "Security Id for Nat Security Group",
+      "Type": "String"
+    },
+    "GhapPrivateSubnetA": {
+      "Description": "Private Subnet Id for Availability Zone",
+      "Type": "String"
+    },
+    "GhapPrivateSubnetB": {
+      "Description": "Private Subnet Id for Availability Zone",
+      "Type": "String"
+    },
+    "GhapPublicSubnetA": {
+      "Description": "Public Subnet Id for Availability Zone",
+      "Type": "String"
+    },
+    "GhapPublicSubnetB": {
+      "Description": "Public Subnet Id for Availability Zone",
+      "Type": "String"
+    },
+    "GhapVPC": {
+      "ConstraintDescription": "The VPC Id",
+      "Description": "The VPC Id",
+      "Type": "String"
+    },
+    "KeyName": {
+      "ConstraintDescription": "Must be the name of an existing EC2 KeyPair.",
+      "Description": "EC2 Key Pair to allow SSH access to the instance",
+      "Type": "AWS::EC2::KeyPair::KeyName"
+    },
+    "ServerAccess": {
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "must be a valid CIDR range of the form x.x.x.x/x.",
+      "Default": "0.0.0.0/0",
+      "Description": "CIDR IP range allowed to login to the NAT instance",
+      "MaxLength": "18",
+      "MinLength": "9",
+      "Type": "String"
+    },
+    "UniqueId": {
+      "Description": "UUID from Stash for the User",
+      "Type": "String"
+    },
+    "Username": {
+      "Description": "The Username of the User",
+      "Type": "String",
+      "Default" : "Unknown"
+    },
+    "UserVolumeId": {
+      "Default": "UNSET",
+      "Description": "The Volume Id to attach to the instance",
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "ComputeHead": {
+      "CreationPolicy": {
+        "ResourceSignal": {
+          "Timeout": "PT30M"
+        }
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Init": {
+          "analystinit": {
+            "commands": {
+              "update": {
+                "command": "/bin/bash /tmp/update.sh\n",
+                "ignoreErrors": "true"
+              }
+            },
+            "files": {
+              "/etc/hosts": {
+                "content": "127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4\n::1         localhost localhost.localdomain localhost6 localhost6.localdomain6\n"
+              },
+              "/etc/sysconfig/network": {
+                "content": "NETWORKING=yes\nNETWORKING_IPV6=no\nHOSTNAME=compute-head\n"
+              },
+              "/tmp/update.sh": {
+                "content": {
+                  "Fn::Join": [
+                    "\n",
+                    [
+                      "#!/bin/bash",
+                      "usermod --shell /bin/bash analyst",
+                      "chown -R analyst.users /analyst",
+                      "echo analyst | passwd --stdin analyst",
+                      "cat /etc/ssh/sshd_config | sed s/PasswordAuthentication\\ no/PasswordAuthentication\\ yes/g > /tmp/sshd_config",
+                      "mv /tmp/sshd_config /etc/ssh/sshd_config",
+                      "service sshd restart",
+                      "fdisk -l | grep xvdf",
+                      "if [ $? -eq 0 ]",
+                      "then",
+                      "echo \"/dev/xvdf /analyst ext4 defaults 0 0\" >> /etc/fstab",
+                      "mount -a",
+                      "fi"
+                    ]
+                  ]
+                }
+              }
+            },
+            "services": {
+              "sysvinit": {
+                "ip6tables": {
+                  "enabled": "false",
+                  "ensureRunning": "false"
+                },
+                "iptables": {
+                  "enabled": "false",
+                  "ensureRunning": "false"
+                },
+                "postfix": {
+                  "enabled": "false",
+                  "ensureRunning": "false"
+                }
+              }
+            },
+            "users": {
+              "analyst": {
+                "groups": [
+                  "users"
+                ],
+                "homeDir": "/analyst",
+                "uid": "1000"
+              }
+            }
+          },
+          "configSets": {
+            "InstallAndRun": [
+              "analystinit"
+            ]
+          }
+        }
+      },
+      "Properties": {
+        "AvailabilityZone": {
+          "Fn::FindInMap": [
+            "AvailabilityZone",
+            "A",
+            "ZONEID"
+          ]
+        },
+        "ImageId": "ami-a0ebf3c8",
+        "InstanceType": "c3.large",
+        "KeyName": {
+          "Ref": "KeyName"
+        },
+        "NetworkInterfaces": [
+          {
+            "AssociatePublicIpAddress": "true",
+            "DeleteOnTermination": true,
+            "DeviceIndex": "0",
+            "GroupSet": [
+              {
+                "Ref": "ComputeSecurityGroup"
+              }
+            ],
+            "SubnetId": {
+              "Ref": "GhapPublicSubnetA"
+            }
+          }
+        ],
+        "SourceDestCheck": false,
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash\n",
+                "hostname compute-head\n",
+                "mkdir /analyst\n",
+                "cfn-init -s ",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                "         -r ComputeHead ",
+                "         -c InstallAndRun \n",
+                "# Signal the status from cfn-init\n",
+                "cfn-signal -e $? ",
+                "           --stack=",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                "           --resource=ComputeHead \n"
+              ]
+            ]
+          }
+        }
+      },
+      "Type": "AWS::EC2::Instance"
+    },
+    "ComputeSecurityGroup": {
+      "Properties": {
+        "GroupDescription": "Compute Head Security Group",
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": {
+              "Ref": "ServerAccess"
+            },
+            "FromPort": "22",
+            "IpProtocol": "tcp",
+            "ToPort": "22"
+          },
+          {
+            "CidrIp": "10.10.0.0/16",
+            "FromPort": "53",
+            "IpProtocol": "udp",
+            "ToPort": "53"
+          }
+        ],
+        "VpcId": {
+          "Ref": "GhapVPC"
+        }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "UserVolumeAttachment": {
+      "Condition": "AttachUserStorage",
+      "Properties": {
+        "Device": "/dev/xvdf",
+        "InstanceId": {
+          "Ref": "ComputeHead"
+        },
+        "VolumeId": {
+          "Ref": "UserVolumeId"
+        }
+      },
+      "Type": "AWS::EC2::VolumeAttachment"
+    }
+  }
+}

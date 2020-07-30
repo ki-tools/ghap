@@ -1,0 +1,3 @@
+<configuration debug="true">
+    <root level="debug" />
+</configuration>

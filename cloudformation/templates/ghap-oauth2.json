@@ -1,0 +1,247 @@
+{
+  "Description" : "Cloudformation Stack for an APIs OAuth2 Server",
+  "Parameters": {
+    "KeyName": {
+      "ConstraintDescription": "Must be the name of an existing EC2 KeyPair.",
+      "Description": "EC2 Key Pair to allow SSH access to the instance",
+      "Type": "AWS::EC2::KeyPair::KeyName"
+    },
+    "ServerAccess": {
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "must be a valid CIDR range of the form x.x.x.x/x.",
+      "Default": "0.0.0.0/0",
+      "Description": "CIDR IP range allowed to login to the NAT instance",
+      "MaxLength": "18",
+      "MinLength": "9",
+      "Type": "String"
+    },
+    "WebServerInstanceProfile" : {
+      "Description": "The Web Server Instance Profile Id",
+      "Type": "String"
+    },
+    "GhapVPC": {
+      "ConstraintDescription": "The VPC Id",
+      "Description": "The VPC Id",
+      "Type": "String"
+    },
+    "GhapPrivateSubnetA": {
+      "Description": "Private Subnet Id for Availability Zone",
+      "Type": "String"
+    },
+    "GhapPrivateSubnetB": {
+      "Description": "Private Subnet Id for Availability Zone",
+      "Type": "String"
+    },
+    "GhapPublicSubnetA": {
+      "Description": "Public Subnet Id for Availability Zone",
+      "Type": "String"
+    },
+    "GhapPublicSubnetB": {
+      "Description": "Public Subnet Id for Availability Zone",
+      "Type": "String"
+    },
+    "DBAllocatedStorage": {
+      "ConstraintDescription": "Must be between 1 and 1024Gb.",
+      "Default": "5",
+      "Description": "The size of the database (Gb)",
+      "MaxValue": "1024",
+      "MinValue": "5",
+      "Type": "Number"
+    },
+    "DBPassword": {
+      "AllowedPattern": "[a-zA-Z0-9]+",
+      "ConstraintDescription": "must contain only alphanumeric characters.",
+      "Default": "globalhealthanalysisplatform",
+      "Description": "Database Password",
+      "MaxLength": "41",
+      "MinLength": "1",
+      "NoEcho": "true",
+      "Type": "String"
+    },
+    "DBUser": {
+      "AllowedPattern": "[a-zA-Z][a-zA-Z0-9]*",
+      "ConstraintDescription": "Must begin with a letter and contain only alphanumeric characters.",
+      "Default": "ghap",
+      "Description": "Database Username",
+      "MaxLength": "16",
+      "MinLength": "1",
+      "NoEcho": "true",
+      "Type": "String"
+    },
+    "Domain": {
+      "Description": "The domain or subdomain to be used.",
+      "Type": "String",
+      "ConstraintDescription" : "Must specify ghap.io, qa.ghap.io. dev.ghap.io.",
+      "AllowedValues" : ["ghap.io.", "samba.ghap.io.", "dev.ghap.io.", "qa.ghap.io."]
+    },
+    "BeanstalkInstanceType" : {
+      "Description" : "The instance type to use for beanstalk",
+      "Type" : "String",
+      "Default" : "t2.medium"
+    },
+    "GhapBeanstalkSecurityGroup" : {
+      "Type" : "String",
+      "Description" : "Ghap Beanstalk Security Group Id"
+    },
+    "GhapOAuth2DBSecurityGroup" : {
+      "Type" : "String",
+      "Description" : "Ghap OAuth Database Security Group Id"
+    },
+    "DeploymentTarget" : {
+      "Description" : "Deployment Target, this is either prod,qa or devtest",
+      "Type" : "String",
+      "AllowedValues" : ["prod", "qa","devtest", "samba"],
+      "Default" : "prod"
+    }
+  },
+  "Conditions": {
+    "CreateDevTestResources": {
+      "Fn::Equals": [
+        {"Ref": "DeploymentTarget"},
+        "devtest"
+      ]
+    },
+    "CreateProdResources": {
+      "Fn::Equals": [
+        {"Ref": "DeploymentTarget"},
+        "prod"
+      ]
+    }
+  },
+  "Resources" : {
+    "GhapOAuth2DBSubnetGroup": {
+      "Properties": {
+        "DBSubnetGroupDescription": "OAuth2 DB Subnet Group",
+        "SubnetIds": [
+          { "Ref": "GhapPrivateSubnetA" },
+          { "Ref": "GhapPrivateSubnetB" }
+        ]
+      },
+      "Type": "AWS::RDS::DBSubnetGroup"
+    },
+    "GhapOAuth2Database": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "AllocatedStorage": { "Ref": "DBAllocatedStorage" },
+        "DBInstanceClass": "db.m3.medium",
+        "DBName": "OAuth2DB",
+        "DBSecurityGroups": [ { "Ref": "GhapOAuth2DBSecurityGroup" } ],
+        "DBSubnetGroupName": { "Ref": "GhapOAuth2DBSubnetGroup" },
+        "Engine": "MySQL",
+        "EngineVersion": "5.6.22",
+        "MasterUserPassword": { "Ref": "DBPassword" },
+        "MasterUsername": { "Ref": "DBUser" },
+        "MultiAZ": "true",
+        "PubliclyAccessible": "false",
+        "VPCSecurityGroups": [ { "Ref" : "GhapBeanstalkSecurityGroup"} ]
+      },
+      "Type": "AWS::RDS::DBInstance"
+    },
+    "GhapOAuth2ServiceApplication" : {
+      "Type" : "AWS::ElasticBeanstalk::Application",
+      "Properties" : {
+        "Description" : "GHAP OAuth 2 Service"
+      }
+    },
+    "GhapOAuth2ServiceTemplate" : {
+      "DependsOn" : [ "GhapOAuth2Database" ],
+    	"Type" : "AWS::ElasticBeanstalk::ConfigurationTemplate",
+    	"Properties" : {
+    		"ApplicationName" : { "Ref" : "GhapOAuth2ServiceApplication" },
+    		"Description" : "Ghap OAuth 2 Service Configuration Template",
+    		"OptionSettings" : [
+    			{
+            "Namespace": "aws:autoscaling:launchconfiguration",
+            "OptionName": "EC2KeyName",
+            "Value": {"Ref" : "KeyName" }
+          },
+          {
+            "Namespace": "aws:autoscaling:launchconfiguration",
+            "OptionName": "IamInstanceProfile",
+            "Value": { "Ref": "WebServerInstanceProfile" }
+          },  
+          {
+            "Namespace": "aws:autoscaling:launchconfiguration",
+            "OptionName": "InstanceType",
+            "Value": {"Ref" : "BeanstalkInstanceType"}
+          },
+          {
+          	"Namespace" : "aws:autoscaling:launchconfiguration", 
+          	"OptionName" : "SecurityGroups", 
+          	"Value" : { "Ref" : "GhapBeanstalkSecurityGroup" }
+          },
+          {
+          	"Namespace" : "aws:ec2:vpc",
+          	"OptionName" : "VPCId",
+          	"Value" : { "Ref" : "GhapVPC" }
+          },
+          {
+            "Namespace": "aws:ec2:vpc",
+            "OptionName": "AssociatePublicIpAddress",
+            "Value": "true"
+          },
+          {
+          	"Namespace" : "aws:ec2:vpc", 
+          	"OptionName" : "Subnets",
+            "Value" : { "Fn::Join" : [ ",",[{ "Ref" : "GhapPublicSubnetA" }, {"Ref" : "GhapPublicSubnetB"}]]}
+          },
+          {
+          	"Namespace" : "aws:ec2:vpc", 
+          	"OptionName" : "ELBSubnets", 
+          	"Value" : { "Fn::Join" : [ ",",[{ "Ref" : "GhapPublicSubnetA" }, {"Ref" : "GhapPublicSubnetB"}]]}
+          },
+          {
+            "Namespace": "aws:elasticbeanstalk:environment",
+            "OptionName": "EnvironmentType",
+            "Value": "SingleInstance"
+          },
+          {
+            "Namespace": "aws:elasticbeanstalk:application:environment",
+            "OptionName": "JDBC_CONNECTION_STRING",
+            "Value": { 
+              "Fn::Join": [ "", [ "jdbc:mysql://", 
+                { "Fn::GetAtt": [ "GhapOAuth2Database", "Endpoint.Address"] }, ":", 
+                { "Fn::GetAtt": [ "GhapOAuth2Database", "Endpoint.Port" ] }, "/OAuth2DB" ]
+              ]
+            }
+          }
+        ],
+        "SolutionStackName": "64bit Amazon Linux 2015.03 v1.3.1 running Tomcat 8 Java 8"
+    	}
+    },
+    "GhapOAuth2ServiceEnvironment" : {
+      "DependsOn" : [ "GhapOAuth2ServiceApplication", "GhapOAuth2ServiceTemplate"],
+      "Type" : "AWS::ElasticBeanstalk::Environment",
+      "Properties" : {
+        "CNAMEPrefix" : {"Fn::Join" : ["-", [ "ghap", "oauth", { "Ref" : "AWS::Region"}, {"Ref" : "DeploymentTarget" }]]},
+        "ApplicationName" : { "Ref" : "GhapOAuth2ServiceApplication" },
+        "Description" : "Ghap OAuth 2 Service",
+        "TemplateName" : { "Ref" : "GhapOAuth2ServiceTemplate" }
+    	}
+    },
+    "DevOAuth2ServiceDnsEntry" : {
+      "Condition" : "CreateDevTestResources",
+      "Type" : "AWS::Route53::RecordSet",
+      "Properties" : {
+        "HostedZoneName" : {"Ref" : "Domain"},
+        "Comment" : "DNS name for OAuth2 Server Instance",
+        "Type" : "A",
+        "TTL" : "900",
+        "Name" : {"Fn::Join" : [".", [ "oauth", { "Ref" : "Domain" }]]},
+        "ResourceRecords" : ["52.0.142.254"]
+      }
+    },
+    "OAuth2ServiceDnsEntry" : {
+      "Condition" : "CreateProdResources",
+      "Type" : "AWS::Route53::RecordSet",
+      "Properties" : {
+        "HostedZoneName" : {"Ref" : "Domain"},
+        "Comment" : "DNS name for OAuth2 Server Instance",
+        "Type" : "A",
+        "TTL" : "900",
+        "Name" : {"Fn::Join" : [".", [ "oauth", { "Ref" : "Domain" }]]},
+        "ResourceRecords" : ["52.5.190.227"]
+      }
+    }
+  }
+}

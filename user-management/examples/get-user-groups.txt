@@ -1,0 +1,17 @@
+address: http://localhost:8080/user/groups/CN=andrew.krasnoff,CN=Users,DC=dev,DC=ghap,DC=io
+method: GET
+response:
+[
+   {
+      "objectClass":"group",
+      "dn":"CN=Administrators,CN=Builtin,DC=dev,DC=ghap,DC=io",
+      "name":"Administrators",
+      "description":"Administrators have complete and unrestricted access to the computer/domain"
+   },
+   {
+      "objectClass":"group",
+      "dn":"CN=Users,CN=Builtin,DC=dev,DC=ghap,DC=io",
+      "name":"Users",
+      "description":"Users are prevented from making accidental or intentional system-wide changes and can run most applications"
+   }
+]
